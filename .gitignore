@@ -1,1 +1,19 @@
 node_modules
+dist
+dist-ssr
+coverage
+*.local
+*.log
+.vite
+.firebase
+
+# Secrets: real config lives in .env.local, never in git
+.env
+.env.*
+!.env.example
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
