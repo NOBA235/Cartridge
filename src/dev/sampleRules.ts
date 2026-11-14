@@ -52,6 +52,9 @@ export const SAMPLE_RULES: readonly Rule[] = [
     exceptions: [],
     severity: 'minor',
     keywords: ['handwashing', 'soap', 'wash hands', 'hygiene', 'station'],
-    source: { section: 'Dev sample 3', quote: 'a handwashing station within reach of every toilet block' },
+    source: {
+      section: 'Dev sample 3',
+      quote: 'a handwashing station within reach of every toilet block',
+    },
   },
 ];

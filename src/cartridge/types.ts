@@ -48,7 +48,9 @@ export const ExamReportSchema = z.object({
   criticalPassRate: z.number().min(0).max(1),
   outOfScopeRate: z.number().min(0).max(1),
   heldOutPassRate: z.number().min(0).max(1),
-  failures: z.array(z.object({ question: z.string(), expected: z.string(), predicted: z.string() })),
+  failures: z.array(
+    z.object({ question: z.string(), expected: z.string(), predicted: z.string() }),
+  ),
   ready: z.boolean(),
 });
 export type ExamReport = z.infer<typeof ExamReportSchema>;

@@ -88,10 +88,14 @@ export function isPrivate(x: unknown): x is Private<unknown> {
 /** Run-time gate used by every cloud entry point. */
 export function assertPublic(x: unknown, where: string): asserts x is Public<unknown> {
   if (isPrivate(x)) {
-    throw new PrivacyError(`${where}: refused a Private value. Use declassify() with user approval.`);
+    throw new PrivacyError(
+      `${where}: refused a Private value. Use declassify() with user approval.`,
+    );
   }
   if (!isPublic(x)) {
-    throw new PrivacyError(`${where}: refused an unclassified value. Only Public values may leave.`);
+    throw new PrivacyError(
+      `${where}: refused an unclassified value. Only Public values may leave.`,
+    );
   }
 }
 

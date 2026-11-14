@@ -182,7 +182,10 @@ export class FirebaseDeviceModel implements DeviceModel {
     }
     const parsed = this.outputSchema.safeParse(json);
     if (!parsed.success) {
-      throw new DeviceError(`Device output failed validation: ${parsed.error.message}`, 'BAD_OUTPUT');
+      throw new DeviceError(
+        `Device output failed validation: ${parsed.error.message}`,
+        'BAD_OUTPUT',
+      );
     }
     return { ...parsed.data, source: 'ON_DEVICE' };
   }

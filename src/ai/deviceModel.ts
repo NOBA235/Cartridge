@@ -37,12 +37,7 @@ export interface DeviceModel {
 }
 
 export type DeviceErrorCode =
-  | 'UNAVAILABLE'
-  | 'NOT_PREPARED'
-  | 'BAD_OUTPUT'
-  | 'PROMPT_TOO_LONG'
-  | 'RAN_IN_CLOUD'
-  | 'FAILED';
+  'UNAVAILABLE' | 'NOT_PREPARED' | 'BAD_OUTPUT' | 'PROMPT_TOO_LONG' | 'RAN_IN_CLOUD' | 'FAILED';
 
 export class DeviceError extends Error {
   override readonly name = 'DeviceError';

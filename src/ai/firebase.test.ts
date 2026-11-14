@@ -16,7 +16,11 @@ describe('Firebase config', () => {
   });
 
   it('names the missing keys', () => {
-    const r = readFirebaseOptions({ ...full, VITE_FIREBASE_API_KEY: '', VITE_FIREBASE_APP_ID: undefined });
+    const r = readFirebaseOptions({
+      ...full,
+      VITE_FIREBASE_API_KEY: '',
+      VITE_FIREBASE_APP_ID: undefined,
+    });
     expect(r.ok).toBe(false);
     expect(!r.ok && r.reason).toMatch(/VITE_FIREBASE_API_KEY, VITE_FIREBASE_APP_ID/);
   });
@@ -28,7 +32,12 @@ describe('App Check mode', () => {
   });
 
   it('never uses debug mode in production builds, even with a debug token set', () => {
-    const r = chooseAppCheckMode({ ...full, DEV: false, VITE_APPCHECK_DEBUG_TOKEN: 'leaked', VITE_APPCHECK_SITE_KEY: 's' });
+    const r = chooseAppCheckMode({
+      ...full,
+      DEV: false,
+      VITE_APPCHECK_DEBUG_TOKEN: 'leaked',
+      VITE_APPCHECK_SITE_KEY: 's',
+    });
     expect(r).toEqual({ ok: true, mode: 'recaptcha-enterprise' });
   });
 

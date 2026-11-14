@@ -31,7 +31,10 @@ function fake(opts: FakeOptions = {}) {
     if (opts.initError) throw opts.initError;
     cb?.(0.5);
   });
-  const model: DeviceModelLike & { chromeAdapter?: object } = { generateContent, initializeDeviceModel };
+  const model: DeviceModelLike & { chromeAdapter?: object } = {
+    generateContent,
+    initializeDeviceModel,
+  };
   if (opts.adapter !== false) model.chromeAdapter = {};
   let params: DeviceModelParams | undefined;
   const factory: DeviceModelFactory = (p) => {
@@ -48,14 +51,18 @@ beforeEach(() => egressLog._reset());
 describe('device prompt and schema', () => {
   it('lists only the candidates, one per line, with Not when when present', () => {
     const prompt = buildDeviceSelectPrompt('q?', SAMPLE_RULES.slice(1, 2));
-    expect(prompt).toContain('R002: Toilets per number of people. When: Deciding how many toilets a site needs. Not when: Asking about handwashing or water quantity.');
+    expect(prompt).toContain(
+      'R002: Toilets per number of people. When: Deciding how many toilets a site needs. Not when: Asking about handwashing or water quantity.',
+    );
     expect(prompt).not.toContain('R001');
     expect(prompt).not.toContain('R003');
     expect(prompt.startsWith('Question: q?')).toBe(true);
   });
 
   it('omits Not when if the rule has none and avoids double full stops', () => {
-    const line = formatCandidateLine({ ...SAMPLE_RULES[0]!, title: 'Water.' });
+    const [water] = SAMPLE_RULES;
+    if (!water) throw new Error('sample rules missing');
+    const line = formatCandidateLine({ ...water, title: 'Water.' });
     expect(line).toBe('R001: Water. When: Planning daily drinking water for a group of people.');
   });
 
@@ -87,7 +94,10 @@ describe('FirebaseDeviceModel', () => {
   it('is unavailable when initializeDeviceModel throws', async () => {
     const f = fake({ initError: new Error('Local LanguageModel API not available') });
     const status = await new FirebaseDeviceModel(IDS, f.factory).prepare(() => {});
-    expect(status).toMatchObject({ state: 'unavailable', reason: 'Local LanguageModel API not available' });
+    expect(status).toMatchObject({
+      state: 'unavailable',
+      reason: 'Local LanguageModel API not available',
+    });
   });
 
   it('reports progress and ends at 1', async () => {

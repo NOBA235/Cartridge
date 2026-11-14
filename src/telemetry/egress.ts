@@ -14,7 +14,7 @@
  * Phase 0 keeps the log in memory. Phase 1 persists it to IndexedDB.
  */
 import { createStore } from '@/lib/store';
-import type { DeclassifyScope, PublicOrigin } from '@/privacy/classified';
+import type { DeclassifyScope, PublicOrigin } from '@/privacy';
 
 export type EgressKind = 'cloud-call' | 'declassify' | 'unexpected-cloud';
 export type EgressStatus = 'ok' | 'error';

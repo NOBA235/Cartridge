@@ -6,7 +6,15 @@ import { describe, expectTypeOf, it } from 'vitest';
 import { Schema } from 'firebase/ai';
 import { z } from 'zod';
 import { cloudJson, type CloudTask } from '@/ai/cloud';
-import { asPrivate, asPublic, declassify, fillTemplate, grantApproval, type Private, type Public } from './index';
+import {
+  asPrivate,
+  asPublic,
+  declassify,
+  fillTemplate,
+  grantApproval,
+  type Private,
+  type Public,
+} from './index';
 
 const task: CloudTask = { name: 'DEV_PING', responseSchema: Schema.object({ properties: {} }) };
 const schema = z.object({});
@@ -47,12 +55,14 @@ describe('cloud tasks accept only Public values', () => {
 
   it('declassify turns Private into Public and needs an Approval', () => {
     const priv = asPrivate('x', 'user-question');
-    expectTypeOf(declassify(priv, grantApproval('x', { purpose: 'p', scope: 'ask' }))).toEqualTypeOf<
-      Public<string>
-    >();
+    expectTypeOf(
+      declassify(priv, grantApproval('x', { purpose: 'p', scope: 'ask' })),
+    ).toEqualTypeOf<Public<string>>();
     // @ts-expect-error an approval is required
     void (() => declassify(priv));
+    const pub = asPublic('x', 'app');
+    const approval = grantApproval('x', { purpose: 'p', scope: 'ask' });
     // @ts-expect-error declassify takes Private, not Public
-    void (() => declassify(asPublic('x', 'app'), grantApproval('x', { purpose: 'p', scope: 'ask' })));
+    void (() => declassify(pub, approval));
   });
 });

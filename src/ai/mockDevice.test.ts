@@ -21,34 +21,51 @@ describe('MockDeviceModel', () => {
       ['Where should the soap and handwashing go?', 'R003'],
     ];
     for (const [q, expected] of cases) {
-      expect((await m.selectRule({ question: ask(q), candidates: SAMPLE_RULES })).ruleId).toBe(expected);
+      expect((await m.selectRule({ question: ask(q), candidates: SAMPLE_RULES })).ruleId).toBe(
+        expected,
+      );
     }
   });
 
   it('answers NONE when nothing overlaps', async () => {
     const m = new MockDeviceModel({ errorRate: 0 });
-    const sel = await m.selectRule({ question: ask('What is the radio frequency?'), candidates: SAMPLE_RULES });
+    const sel = await m.selectRule({
+      question: ask('What is the radio frequency?'),
+      candidates: SAMPLE_RULES,
+    });
     expect(sel).toEqual({ ruleId: 'NONE', quantity: -1, source: 'mock' });
   });
 
   it('extracts the quantity only when the chosen rule has a calc', async () => {
     const m = new MockDeviceModel({ errorRate: 0 });
-    const toilets = await m.selectRule({ question: ask('How many toilets for 1,200 people?'), candidates: SAMPLE_RULES });
+    const toilets = await m.selectRule({
+      question: ask('How many toilets for 1,200 people?'),
+      candidates: SAMPLE_RULES,
+    });
     expect(toilets.quantity).toBe(1200);
-    const hand = await m.selectRule({ question: ask('handwashing for 3 blocks'), candidates: SAMPLE_RULES });
+    const hand = await m.selectRule({
+      question: ask('handwashing for 3 blocks'),
+      candidates: SAMPLE_RULES,
+    });
     expect(hand.quantity).toBe(-1);
   });
 
   it('accepts Public exam questions too', async () => {
     const m = new MockDeviceModel({ errorRate: 0 });
-    const sel = await m.selectRule({ question: asPublic('toilets needed', 'cloud-response'), candidates: SAMPLE_RULES });
+    const sel = await m.selectRule({
+      question: asPublic('toilets needed', 'cloud-response'),
+      candidates: SAMPLE_RULES,
+    });
     expect(sel.ruleId).toBe('R002');
   });
 
   it('always answers wrongly at error rate 1', async () => {
     const m = new MockDeviceModel({ errorRate: 1, seed: 7 });
     for (let i = 0; i < 20; i++) {
-      const sel = await m.selectRule({ question: ask('how many toilets'), candidates: SAMPLE_RULES });
+      const sel = await m.selectRule({
+        question: ask('how many toilets'),
+        candidates: SAMPLE_RULES,
+      });
       expect(sel.ruleId).not.toBe('R002');
     }
   });
@@ -58,7 +75,10 @@ describe('MockDeviceModel', () => {
       const m = new MockDeviceModel({ errorRate: 0.3, seed: 123 });
       const out: string[] = [];
       for (let i = 0; i < 200; i++) {
-        out.push((await m.selectRule({ question: ask('how many toilets'), candidates: SAMPLE_RULES })).ruleId);
+        out.push(
+          (await m.selectRule({ question: ask('how many toilets'), candidates: SAMPLE_RULES }))
+            .ruleId,
+        );
       }
       return out;
     };
@@ -75,7 +95,9 @@ describe('MockDeviceModel', () => {
 
   it('simulates download progress ending at 1', async () => {
     const progress: number[] = [];
-    const status = await new MockDeviceModel({ errorRate: 0, progressSteps: 2 }).prepare((p) => progress.push(p));
+    const status = await new MockDeviceModel({ errorRate: 0, progressSteps: 2 }).prepare((p) =>
+      progress.push(p),
+    );
     expect(status).toEqual({ state: 'ready', kind: 'mock' });
     expect(progress).toEqual([0.5, 1]);
   });

@@ -49,7 +49,12 @@ export class CloudError extends Error {
   readonly code: CloudErrorCode;
   readonly attempts: number;
   readonly causes: readonly string[];
-  constructor(message: string, code: CloudErrorCode, attempts: number, causes: readonly string[] = []) {
+  constructor(
+    message: string,
+    code: CloudErrorCode,
+    attempts: number,
+    causes: readonly string[] = [],
+  ) {
     super(message);
     this.code = code;
     this.attempts = attempts;

@@ -23,15 +23,27 @@ describe('router', () => {
   });
 
   it.each(REASONS)('%s: cloud when online and allowed', (reason) => {
-    expect(escalate(reason, { online: true, cloudAllowed: true })).toEqual({ route: 'cloud', reason });
+    expect(escalate(reason, { online: true, cloudAllowed: true })).toEqual({
+      route: 'cloud',
+      reason,
+    });
   });
 
   it.each(REASONS)('%s: queue when offline and allowed', (reason) => {
-    expect(escalate(reason, { online: false, cloudAllowed: true })).toEqual({ route: 'queue', reason });
+    expect(escalate(reason, { online: false, cloudAllowed: true })).toEqual({
+      route: 'queue',
+      reason,
+    });
   });
 
   it.each(REASONS)('%s: stays on this device when the cloud setting is off', (reason) => {
-    expect(escalate(reason, { online: true, cloudAllowed: false })).toEqual({ route: 'local-only', reason });
-    expect(escalate(reason, { online: false, cloudAllowed: false })).toEqual({ route: 'local-only', reason });
+    expect(escalate(reason, { online: true, cloudAllowed: false })).toEqual({
+      route: 'local-only',
+      reason,
+    });
+    expect(escalate(reason, { online: false, cloudAllowed: false })).toEqual({
+      route: 'local-only',
+      reason,
+    });
   });
 });

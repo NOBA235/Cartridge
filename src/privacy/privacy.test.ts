@@ -27,7 +27,10 @@ describe('Public and Private values', () => {
   });
 
   it('rejects a hand-built object that only looks Public', () => {
-    const forged = Object.freeze({ value: 'secret', origins: ['app'] }) as unknown as Public<string>;
+    const forged = Object.freeze({
+      value: 'secret',
+      origins: ['app'],
+    }) as unknown as Public<string>;
     expect(isPublic(forged)).toBe(false);
     expect(() => assertPublic(forged, 'test')).toThrow(PrivacyError);
   });
@@ -49,7 +52,10 @@ describe('Public and Private values', () => {
 describe('fillTemplate', () => {
   it('fills placeholders and merges origins', () => {
     const t = asPublic('Q: {{q}} R: {{r}}', 'app');
-    const out = fillTemplate(t, { q: asPublic('why', 'cloud-response'), r: asPublic('R001', 'cartridge') });
+    const out = fillTemplate(t, {
+      q: asPublic('why', 'cloud-response'),
+      r: asPublic('R001', 'cartridge'),
+    });
     expect(out.value).toBe('Q: why R: R001');
     expect(isPublic(out)).toBe(true);
     expect([...out.origins].sort()).toEqual(['app', 'cartridge', 'cloud-response']);
@@ -113,7 +119,9 @@ describe('declassify', () => {
   });
 
   it('refuses a value that is not a minted Private', () => {
-    const fake = { value: 'abc', origin: 'user-question' } as unknown as Parameters<typeof declassify>[0];
+    const fake = { value: 'abc', origin: 'user-question' } as unknown as Parameters<
+      typeof declassify
+    >[0];
     expect(() => declassify(fake, grantApproval('abc', { purpose: 'x', scope: 'ask' }))).toThrow(
       /not a Private/,
     );

@@ -51,7 +51,10 @@ export function readFirebaseOptions(
 ): { ok: true; options: FirebaseOptions } | { ok: false; reason: string } {
   const missing = REQUIRED_KEYS.filter((k) => !env[k]);
   if (missing.length > 0) {
-    return { ok: false, reason: `Firebase is not configured. Missing in .env.local: ${missing.join(', ')}` };
+    return {
+      ok: false,
+      reason: `Firebase is not configured. Missing in .env.local: ${missing.join(', ')}`,
+    };
   }
   return {
     ok: true,
@@ -72,14 +75,29 @@ export function chooseAppCheckMode(
 ): { ok: true; mode: AppCheckMode } | { ok: false; reason: string } {
   if (env.DEV) return { ok: true, mode: 'debug' };
   if (env.VITE_APPCHECK_SITE_KEY) return { ok: true, mode: 'recaptcha-enterprise' };
-  return { ok: false, reason: 'App Check is not configured. Set VITE_APPCHECK_SITE_KEY for production builds.' };
+  return {
+    ok: false,
+    reason: 'App Check is not configured. Set VITE_APPCHECK_SITE_KEY for production builds.',
+  };
 }
 
 let state: FirebaseState | undefined;
 
 export function getFirebase(): FirebaseState {
   if (state) return state;
-  const env: FirebaseEnv = { ...import.meta.env, DEV: import.meta.env.DEV };
+  // List keys explicitly: spreading import.meta.env would inline every VITE_ value
+  // into the bundle. The debug token is read only inside an import.meta.env.DEV
+  // branch, so production builds drop it entirely.
+  const env: FirebaseEnv = {
+    VITE_FIREBASE_API_KEY: import.meta.env.VITE_FIREBASE_API_KEY,
+    VITE_FIREBASE_AUTH_DOMAIN: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    VITE_FIREBASE_PROJECT_ID: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    VITE_FIREBASE_STORAGE_BUCKET: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    VITE_FIREBASE_MESSAGING_SENDER_ID: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    VITE_FIREBASE_APP_ID: import.meta.env.VITE_FIREBASE_APP_ID,
+    VITE_APPCHECK_SITE_KEY: import.meta.env.VITE_APPCHECK_SITE_KEY,
+    DEV: import.meta.env.DEV,
+  };
   const opts = readFirebaseOptions(env);
   if (!opts.ok) return (state = opts);
   const mode = chooseAppCheckMode(env);
@@ -88,10 +106,10 @@ export function getFirebase(): FirebaseState {
   try {
     const app = initializeApp(opts.options);
 
-    if (mode.mode === 'debug') {
+    if (import.meta.env.DEV && mode.mode === 'debug') {
       // A registered token from .env.local, or `true` so the SDK prints a new one
       // to the console for registering in Firebase console > App Check.
-      self.FIREBASE_APPCHECK_DEBUG_TOKEN = env.VITE_APPCHECK_DEBUG_TOKEN || true;
+      self.FIREBASE_APPCHECK_DEBUG_TOKEN = import.meta.env.VITE_APPCHECK_DEBUG_TOKEN || true;
     }
 
     // In debug mode the SDK exchanges the debug token and never asks the provider
@@ -101,7 +119,9 @@ export function getFirebase(): FirebaseState {
       ? new ReCaptchaEnterpriseProvider(env.VITE_APPCHECK_SITE_KEY)
       : new CustomProvider({
           getToken: () =>
-            Promise.reject(new Error('No App Check site key. Only the debug provider is available.')),
+            Promise.reject(
+              new Error('No App Check site key. Only the debug provider is available.'),
+            ),
         });
 
     const appCheck = initializeAppCheck(app, { provider, isTokenAutoRefreshEnabled: true });

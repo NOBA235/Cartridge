@@ -20,14 +20,37 @@ export default tseslint.config(
       // All AI inference goes through Firebase AI Logic. The raw Chrome Prompt API is banned.
       'no-restricted-globals': [
         'error',
-        { name: 'LanguageModel', message: 'Use Firebase AI Logic (src/ai), never the raw Chrome API.' },
+        {
+          name: 'LanguageModel',
+          message: 'Use Firebase AI Logic (src/ai), never the raw Chrome API.',
+        },
       ],
       'no-restricted-properties': [
         'error',
         { object: 'window', property: 'LanguageModel', message: 'Use Firebase AI Logic (src/ai).' },
         { object: 'self', property: 'LanguageModel', message: 'Use Firebase AI Logic (src/ai).' },
-        { object: 'globalThis', property: 'LanguageModel', message: 'Use Firebase AI Logic (src/ai).' },
+        {
+          object: 'globalThis',
+          property: 'LanguageModel',
+          message: 'Use Firebase AI Logic (src/ai).',
+        },
+      ],
+      // Only src/privacy may reach the internal declassified minting function.
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/privacy/classified', '**/privacy/classified'],
+              message: "Import from '@/privacy' instead.",
+            },
+          ],
+        },
       ],
     },
+  },
+  {
+    files: ['src/privacy/**'],
+    rules: { 'no-restricted-imports': 'off' },
   },
 );

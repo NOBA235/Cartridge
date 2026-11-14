@@ -1,7 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Schema } from 'firebase/ai';
 import { z } from 'zod';
-import { asPrivate, asPublic, declassify, fillTemplate, grantApproval, PrivacyError, type Public } from '@/privacy';
+import {
+  asPrivate,
+  asPublic,
+  declassify,
+  fillTemplate,
+  grantApproval,
+  PrivacyError,
+  type Public,
+} from '@/privacy';
 import { egressLog } from '@/telemetry/egress';
 import { CloudError, createCloudClient, type CloudModelLike, type CloudTask } from './cloud';
 
@@ -36,7 +44,12 @@ describe('cloudJson', () => {
     expect(res.attempts).toBe(1);
     const entries = egressLog.entries();
     expect(entries).toHaveLength(1);
-    expect(entries[0]).toMatchObject({ kind: 'cloud-call', label: 'DEV_PING', status: 'ok', bytesSent: 7 });
+    expect(entries[0]).toMatchObject({
+      kind: 'cloud-call',
+      label: 'DEV_PING',
+      status: 'ok',
+      bytesSent: 7,
+    });
     expect(entries[0]?.preview).toBe('ping é');
   });
 
@@ -49,7 +62,12 @@ describe('cloudJson', () => {
   });
 
   it('gives up after 2 retries and still counts the bytes of failed attempts', async () => {
-    const { model, generateContent } = fakeModel([new Error('quota'), new Error('quota'), new Error('quota'), '{"reply":"late"}']);
+    const { model, generateContent } = fakeModel([
+      new Error('quota'),
+      new Error('quota'),
+      new Error('quota'),
+      '{"reply":"late"}',
+    ]);
     await expect(client(model)(task, asPublic('abc', 'app'), ReplySchema)).rejects.toMatchObject({
       code: 'FAILED',
       attempts: 3,
@@ -76,7 +94,9 @@ describe('cloudJson', () => {
 
   it('does not call the cloud while offline', async () => {
     const { model, generateContent } = fakeModel(['{"reply":"x"}']);
-    const err = await client(model, false)(task, asPublic('p', 'app'), ReplySchema).catch((e: unknown) => e);
+    const err = await client(model, false)(task, asPublic('p', 'app'), ReplySchema).catch(
+      (e: unknown) => e,
+    );
     expect(err).toBeInstanceOf(CloudError);
     expect((err as CloudError).code).toBe('OFFLINE');
     expect(generateContent).not.toHaveBeenCalled();

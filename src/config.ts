@@ -16,7 +16,9 @@ function envFlag(value: string | undefined, fallback: boolean): boolean {
 
 function envRate(value: string | undefined, fallback: number): number {
   const n = Number(value);
-  return value !== undefined && value !== '' && Number.isFinite(n) && n >= 0 && n <= 1 ? n : fallback;
+  return value !== undefined && value !== '' && Number.isFinite(n) && n >= 0 && n <= 1
+    ? n
+    : fallback;
 }
 
 export const config = {
