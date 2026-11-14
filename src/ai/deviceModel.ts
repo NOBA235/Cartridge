@@ -1,0 +1,54 @@
+/**
+ * The device model only selects which rule answers a question. Code writes the
+ * answer from the rule. Two implementations:
+ * - FirebaseDeviceModel (./firebaseDevice.ts): Gemini Nano through Firebase AI Logic.
+ * - MockDeviceModel (./mockDevice.ts): keyword overlap, for development. Every
+ *   result it produces carries source 'mock'.
+ */
+import type { Rule } from '@/cartridge/types';
+import type { Classified } from '@/privacy';
+
+/** 'ON_DEVICE' = Gemini Nano reported inferenceSource on_device. 'mock' = MockDeviceModel. */
+export type DeviceSource = 'ON_DEVICE' | 'mock';
+
+export interface DeviceSelection {
+  /** One of the rule IDs in the cartridge, or 'NONE'. Validators check it is a candidate. */
+  ruleId: string;
+  /** Quantity extracted from the question, or -1. */
+  quantity: number;
+  source: DeviceSource;
+}
+
+export type DeviceStatus =
+  | { state: 'ready'; kind: DeviceModel['kind'] }
+  | { state: 'unavailable'; kind: DeviceModel['kind']; reason: string };
+
+export interface SelectRuleInput {
+  /** The user's question (Private) or an exam question (Public). Never leaves the device here. */
+  question: Classified<string>;
+  candidates: readonly Rule[];
+}
+
+export interface DeviceModel {
+  readonly kind: 'firebase' | 'mock';
+  /** Must be called from a user gesture. Reports download progress between 0 and 1. */
+  prepare(onProgress: (fraction: number) => void): Promise<DeviceStatus>;
+  selectRule(input: SelectRuleInput): Promise<DeviceSelection>;
+}
+
+export type DeviceErrorCode =
+  | 'UNAVAILABLE'
+  | 'NOT_PREPARED'
+  | 'BAD_OUTPUT'
+  | 'PROMPT_TOO_LONG'
+  | 'RAN_IN_CLOUD'
+  | 'FAILED';
+
+export class DeviceError extends Error {
+  override readonly name = 'DeviceError';
+  readonly code: DeviceErrorCode;
+  constructor(message: string, code: DeviceErrorCode) {
+    super(message);
+    this.code = code;
+  }
+}

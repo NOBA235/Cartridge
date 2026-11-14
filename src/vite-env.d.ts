@@ -1,0 +1,22 @@
+/// <reference types="vite/client" />
+
+interface ImportMetaEnv {
+  readonly VITE_FIREBASE_API_KEY?: string;
+  readonly VITE_FIREBASE_AUTH_DOMAIN?: string;
+  readonly VITE_FIREBASE_PROJECT_ID?: string;
+  readonly VITE_FIREBASE_STORAGE_BUCKET?: string;
+  readonly VITE_FIREBASE_MESSAGING_SENDER_ID?: string;
+  readonly VITE_FIREBASE_APP_ID?: string;
+  readonly VITE_APPCHECK_SITE_KEY?: string;
+  readonly VITE_APPCHECK_DEBUG_TOKEN?: string;
+  readonly VITE_MOCK_DEVICE?: string;
+  readonly VITE_MOCK_ERROR_RATE?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
+// Read by the Firebase App Check SDK to enable the debug provider (dev only).
+// eslint-disable-next-line no-var
+declare var FIREBASE_APPCHECK_DEBUG_TOKEN: boolean | string | undefined;

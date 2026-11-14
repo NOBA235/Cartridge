@@ -1,0 +1,43 @@
+/**
+ * App configuration. Cloud model names live here and nowhere else.
+ *
+ * Model names checked against https://firebase.google.com/docs/ai-logic/models
+ * on 2026-11-14. Both are listed as Stable with no shutdown date:
+ * - gemini-3.8-flash: used for one-off, quality-sensitive work (compile, exam, tutor).
+ * - gemini-3.5-flash-lite: the SDK's default cloud model; used for quick tasks.
+ * Re-check that page before the submission.
+ */
+export type CloudTaskName = 'DEV_PING' | 'COMPILE' | 'REPAIR_QUOTE' | 'EXAM' | 'TUTOR' | 'ANSWER';
+
+function envFlag(value: string | undefined, fallback: boolean): boolean {
+  if (value === undefined || value === '') return fallback;
+  return value.toLowerCase() === 'true';
+}
+
+function envRate(value: string | undefined, fallback: number): number {
+  const n = Number(value);
+  return value !== undefined && value !== '' && Number.isFinite(n) && n >= 0 && n <= 1 ? n : fallback;
+}
+
+export const config = {
+  cloudModels: {
+    DEV_PING: 'gemini-3.5-flash-lite',
+    COMPILE: 'gemini-3.8-flash',
+    REPAIR_QUOTE: 'gemini-3.8-flash',
+    EXAM: 'gemini-3.8-flash',
+    TUTOR: 'gemini-3.8-flash',
+    ANSWER: 'gemini-3.5-flash-lite',
+  } satisfies Record<CloudTaskName, string>,
+  /** Retries after the first attempt, so 3 attempts at most. */
+  cloudMaxRetries: 2,
+  /**
+   * On-device requests are limited to about 9,216 tokens. We cap the prompt
+   * well below that (roughly 4 characters per token) so a cartridge can never
+   * be pasted in whole.
+   */
+  deviceMaxPromptChars: 16_000,
+  /** Shown in the UI and used by the device model's createOptions. */
+  deviceLanguages: ['en'],
+  mockDevice: envFlag(import.meta.env.VITE_MOCK_DEVICE, true),
+  mockErrorRate: envRate(import.meta.env.VITE_MOCK_ERROR_RATE, 0.1),
+} as const;
