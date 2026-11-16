@@ -109,7 +109,9 @@ export function getFirebase(): FirebaseState {
     if (import.meta.env.DEV && mode.mode === 'debug') {
       // A registered token from .env.local, or `true` so the SDK prints a new one
       // to the console for registering in Firebase console > App Check.
-      self.FIREBASE_APPCHECK_DEBUG_TOKEN = import.meta.env.VITE_APPCHECK_DEBUG_TOKEN || true;
+      // globalThis is `self` in browsers and workers (what the docs use), and also
+      // exists in Node, where the cloud smoke test runs.
+      globalThis.FIREBASE_APPCHECK_DEBUG_TOKEN = import.meta.env.VITE_APPCHECK_DEBUG_TOKEN || true;
     }
 
     // In debug mode the SDK exchanges the debug token and never asks the provider

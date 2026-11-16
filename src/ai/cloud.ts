@@ -165,6 +165,7 @@ function firebaseCloudModel(task: CloudTask): CloudModelLike {
 /** Default client: real Firebase AI Logic, browser online state. */
 export const cloudJson = createCloudClient({
   getModel: firebaseCloudModel,
-  isOnline: () => typeof navigator === 'undefined' || navigator.onLine,
+  // Node 21+ has a navigator without onLine; treat only an explicit false as offline.
+  isOnline: () => typeof navigator === 'undefined' || navigator.onLine !== false,
   maxRetries: config.cloudMaxRetries,
 });

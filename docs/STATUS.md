@@ -19,7 +19,11 @@ Last updated: 2026-11-14 (Phase 0).
 - [x] `npm test` passes (typecheck, unit tests, type tests)
 - [x] `npm run dev` starts and serves `/` and `/dev`
 - [ ] `/dev` works with the mock (code done; needs a click-through in a browser)
-- [ ] A real cloud call works with real Firebase config (needs the owner's `.env.local` and a registered debug token)
+- [ ] A real cloud call works with real Firebase config. Blocked on project setup. `npm run smoke:cloud`
+      (2026-11-16) reached Firebase and got back: "The Firebase AI SDK requires the Firebase AI API
+      ('firebasevertexai.googleapis.com') to be enabled". The App Check token exchange returned 403,
+      which is expected: the run used a throwaway unregistered token, because `.env.local` has no
+      `VITE_APPCHECK_DEBUG_TOKEN` yet.
 - [x] No secrets committed (scanned for API keys, private keys and debug-token UUIDs)
 
 ## Versions in use
@@ -38,7 +42,13 @@ zod 4.6.7, motion 14.14.0, idb 8.0.4, minisearch 7.2.0, pdfjs-dist 6.5.438.
 - **Cloud models** (in `src/config.ts`, checked on the Firebase Models page 2026-11-14):
   `gemini-3.8-flash` for compile, repair, exam and tutor; `gemini-3.5-flash-lite` for answers and the dev ping.
   Both are Stable with no shutdown date.
-- **App Check.** Dev builds always use the debug provider (`self.FIREBASE_APPCHECK_DEBUG_TOKEN`).
+- **Cloud smoke test.** `npm run smoke:cloud` (`src/ai/cloud.smoke.ts`, Vitest `--mode smoke`) makes
+  one real `DEV_PING` call through our `cloudJson` and Firebase AI Logic from Node, with App Check
+  in debug mode. It is never part of `npm test`. It needs `VITE_APPCHECK_DEBUG_TOKEN` set to a
+  registered token (Node has no IndexedDB to keep a generated one) and drops the SDK's console line
+  that prints the token. It checks the cloud path only, not the browser UI.
+- **App Check.** Dev builds always use the debug provider (`globalThis.FIREBASE_APPCHECK_DEBUG_TOKEN`,
+  which is `self` in browsers as in the docs, and also exists in Node).
   Production builds never do, and need `VITE_APPCHECK_SITE_KEY` (reCAPTCHA Enterprise).
   Added `VITE_APPCHECK_SITE_KEY` to `.env.example`. The debug token is read only inside an
   `import.meta.env.DEV` branch and env keys are listed one by one (never spread), so Vite cannot
