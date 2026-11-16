@@ -28,4 +28,12 @@ export const config = {
   deviceMaxPromptChars: 16_000,
   /** Shown in the UI and used by the device model's createOptions. */
   deviceLanguages: ['en'],
+  /** Making a cartridge (brief Phase 2). */
+  compile: {
+    maxRules: 120,
+    maxChunkChars: 30_000,
+    /** Title word similarity (0 to 1) at or above which two rules count as duplicates. */
+    titleSimilarity: 0.8,
+    maxQuoteChars: 300,
+  },
 } as const;

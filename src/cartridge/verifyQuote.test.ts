@@ -188,6 +188,17 @@ describe('verifyQuote', () => {
     expect(ok(verifyQuote('wash hands', 'Wash hands. Then wash hands again.')).occurrences).toBe(2);
   });
 
+  it('24. prefers an occurrence inside a given range, else the first', () => {
+    const src = joinPages(['Wash hands with soap.', 'Other text.', 'Wash hands with soap.']);
+    const third = src.pages[2];
+    if (!third) throw new Error('page missing');
+    expect(ok(verifyQuote('wash hands with soap', src, { preferRange: third })).page).toBe(3);
+    expect(ok(verifyQuote('wash hands with soap', src)).page).toBe(1);
+    expect(
+      ok(verifyQuote('wash hands with soap', src, { preferRange: { start: 0, end: 1 } })).page,
+    ).toBe(1);
+  });
+
   it('23. reuses a prepared source', () => {
     const prepared = prepareSource({ text: source });
     expect(verifyQuote('safe water', prepared).ok).toBe(true);

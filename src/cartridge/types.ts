@@ -55,17 +55,25 @@ export const ExamReportSchema = z.object({
 });
 export type ExamReport = z.infer<typeof ExamReportSchema>;
 
-export const CartridgeSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  version: z.number().int().positive(),
-  parentVersion: z.number().int().positive().optional(),
-  createdAt: z.string(),
-  sourceHash: z.string(),
-  rules: z.array(RuleSchema),
-  changelog: z.array(z.string()),
-  report: ExamReportSchema.optional(),
-});
+export const CartridgeSchema = z
+  .object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    version: z.number().int().positive(),
+    parentVersion: z.number().int().positive().optional(),
+    createdAt: z.string(),
+    sourceHash: z.string(),
+    /** Added to the brief's model: the rulebook's name and licence travel with exported quotes. */
+    sourceName: z.string().optional(),
+    sourceLicence: z.string().optional(),
+    rules: z.array(RuleSchema),
+    changelog: z.array(z.string()),
+    report: ExamReportSchema.optional(),
+  })
+  .refine((c) => new Set(c.rules.map((r) => r.id)).size === c.rules.length, {
+    message: 'Rule IDs must be unique',
+    path: ['rules'],
+  });
 export type Cartridge = z.infer<typeof CartridgeSchema>;
 
 /** Device model answer meaning 'no candidate clearly answers'. */

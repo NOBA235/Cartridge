@@ -21,6 +21,8 @@ export interface CloudTask {
   readonly name: CloudTaskName;
   /** Firebase Schema for the response. Must describe the same shape as the zod schema. */
   readonly responseSchema: ObjectSchema;
+  /** Request timeout (RequestOptions.timeout). The SDK default is 180 seconds. */
+  readonly timeoutMs?: number;
 }
 
 /** The part of GenerativeModel we use. Lets tests inject a fake. */
@@ -67,7 +69,14 @@ function describe(e: unknown): string {
   return String(e);
 }
 
-export function createCloudClient(deps: CloudDeps) {
+/** The cloud entry point. Only Public prompts are accepted. */
+export type CloudJson = <T>(
+  task: CloudTask,
+  prompt: Public<string>,
+  zodSchema: z.ZodType<T>,
+) => Promise<CloudResult<T>>;
+
+export function createCloudClient(deps: CloudDeps): CloudJson {
   return async function cloudJson<T>(
     task: CloudTask,
     prompt: Public<string>,
@@ -148,16 +157,20 @@ function firebaseCloudModel(task: CloudTask): CloudModelLike {
   if (cached) return cached;
   const fb = getFirebase();
   if (!fb.ok) throw new CloudError(fb.reason, 'NOT_CONFIGURED', 0);
-  const model = getGenerativeModel(fb.ai, {
-    mode: InferenceMode.ONLY_IN_CLOUD,
-    inCloudParams: {
-      model: config.cloudModels[task.name],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: task.responseSchema,
+  const model = getGenerativeModel(
+    fb.ai,
+    {
+      mode: InferenceMode.ONLY_IN_CLOUD,
+      inCloudParams: {
+        model: config.cloudModels[task.name],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: task.responseSchema,
+        },
       },
     },
-  });
+    task.timeoutMs ? { timeout: task.timeoutMs } : undefined,
+  );
   modelCache.set(task.name, model);
   return model;
 }

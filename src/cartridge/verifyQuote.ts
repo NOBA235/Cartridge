@@ -73,19 +73,37 @@ function indexOfAtBoundaries(hay: string, needle: string, from: number): number 
   return -1;
 }
 
+export interface VerifyOptions {
+  /**
+   * If the passage occurs more than once, prefer an occurrence that starts in
+   * this [start, end) range of the original text (for example the section the
+   * rule came from). Falls back to the first occurrence.
+   */
+  preferRange?: { start: number; end: number };
+}
+
 function find(
   hay: NormalizedText,
   needle: string,
   pages: readonly PageSpan[] | undefined,
   matchedBy: MatchKind,
+  options: VerifyOptions,
 ): VerifyResult | undefined {
-  const at = indexOfAtBoundaries(hay.text, needle, 0);
-  if (at === -1) return undefined;
+  const first = indexOfAtBoundaries(hay.text, needle, 0);
+  if (first === -1) return undefined;
+  let at = first;
+  let occurrences = 0;
+  let preferred: number | undefined;
+  for (let i = first; i !== -1; i = indexOfAtBoundaries(hay.text, needle, i + 1)) {
+    occurrences++;
+    const r = options.preferRange;
+    const s = hay.starts[i] as number;
+    if (preferred === undefined && r && s >= r.start && s < r.end) preferred = i;
+  }
+  if (preferred !== undefined) at = preferred;
   const start = hay.starts[at] as number;
   const end = hay.ends[at + needle.length - 1] as number;
   const page = pageAt(pages, start);
-  let occurrences = 0;
-  for (let i = at; i !== -1; i = indexOfAtBoundaries(hay.text, needle, i + 1)) occurrences++;
   return {
     ok: true,
     start,
@@ -99,18 +117,19 @@ function find(
 export function verifyQuote(
   quote: string,
   source: string | SourceText | PreparedSource,
+  options: VerifyOptions = {},
 ): VerifyResult {
   const prepared = isPrepared(source) ? source : prepareSource(source);
   const q = normalizeWithMap(quote);
   if (q.text === '') return { ok: false, reason: 'EMPTY_QUOTE' };
 
-  const direct = find(prepared.normalized, q.text, prepared.pages, 'normalized');
+  const direct = find(prepared.normalized, q.text, prepared.pages, 'normalized', options);
   if (direct) return direct;
 
   // The fallback is only for quotes that contain a hyphenated word.
   const qh = dropWordHyphens(q).text;
   if (qh !== q.text && qh !== '') {
-    const loose = find(prepared.hyphenless(), qh, prepared.pages, 'hyphen-insensitive');
+    const loose = find(prepared.hyphenless(), qh, prepared.pages, 'hyphen-insensitive', options);
     if (loose) return loose;
   }
   return { ok: false, reason: 'NOT_FOUND' };

@@ -16,8 +16,11 @@ import type { Cartridge } from './types';
 export interface CartridgeRecord {
   id: string;
   name: string;
+  /** Empty when the cartridge was imported and its rulebook is not on this device. */
   sourceId: string;
+  sourceHash: string;
   currentVersion: number;
+  ruleCount: number;
   updatedAt: string;
 }
 
@@ -82,6 +85,58 @@ export const sourcesStore = {
   },
   async delete(id: string): Promise<void> {
     await (await db()).delete('sources', id);
+  },
+};
+
+export function cartridgeRecord(c: Cartridge, sourceId: string, now = new Date()): CartridgeRecord {
+  return {
+    id: c.id,
+    name: c.name,
+    sourceId,
+    sourceHash: c.sourceHash,
+    currentVersion: c.version,
+    ruleCount: c.rules.length,
+    updatedAt: now.toISOString(),
+  };
+}
+
+export const cartridgesStore = {
+  /** Saves a version and makes it the current one, in one transaction. */
+  async saveVersion(c: Cartridge, sourceId: string): Promise<CartridgeRecord> {
+    const d = await db();
+    const record = cartridgeRecord(c, sourceId);
+    const tx = d.transaction(['cartridges', 'versions'], 'readwrite');
+    await Promise.all([
+      tx.objectStore('versions').put(c),
+      tx.objectStore('cartridges').put(record),
+      tx.done,
+    ]);
+    return record;
+  },
+  /** Newest first. */
+  async list(): Promise<CartridgeRecord[]> {
+    const all = await (await db()).getAll('cartridges');
+    return all.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  },
+  async current(
+    id: string,
+  ): Promise<{ record: CartridgeRecord; cartridge: Cartridge } | undefined> {
+    const d = await db();
+    const record = await d.get('cartridges', id);
+    if (!record) return undefined;
+    const cartridge = await d.get('versions', [id, record.currentVersion]);
+    return cartridge ? { record, cartridge } : undefined;
+  },
+  /** Deletes the cartridge and all its versions. */
+  async delete(id: string): Promise<void> {
+    const d = await db();
+    const tx = d.transaction(['cartridges', 'versions'], 'readwrite');
+    const keys = await tx.objectStore('versions').index('by-cartridge').getAllKeys(id);
+    await Promise.all([
+      ...keys.map((k) => tx.objectStore('versions').delete(k)),
+      tx.objectStore('cartridges').delete(id),
+      tx.done,
+    ]);
   },
 };
 
