@@ -16,7 +16,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "tsc -b && vitest run",
-    "smoke:cloud": "vitest run --mode smoke",
+    "smoke:cloud": "vitest run --mode smoke src/ai/cloud.smoke.ts",
+    "smoke:compile": "vitest run --mode smoke src/cartridge/compile.smoke.ts",
     "test:watch": "vitest"
   },
   "dependencies": {

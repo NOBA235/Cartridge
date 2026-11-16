@@ -1,13 +1,17 @@
 /** Tiny pathname router: no dependency, works with the browser's back button. */
-import { useSyncExternalStore, type MouseEvent } from 'react';
+import { useMemo, useSyncExternalStore, type MouseEvent } from 'react';
 
-export type AppPath = '/' | '/load' | '/dev';
+export type AppPath = '/' | '/load' | '/cartridge' | '/dev';
 
-const KNOWN: readonly AppPath[] = ['/', '/load', '/dev'];
+const KNOWN: readonly AppPath[] = ['/', '/load', '/cartridge', '/dev'];
 
-function current(): AppPath {
-  const p = window.location.pathname.replace(/\/+$/, '') || '/';
+function toPath(pathname: string): AppPath {
+  const p = pathname.replace(/\/+$/, '') || '/';
   return (KNOWN as readonly string[]).includes(p) ? (p as AppPath) : '/';
+}
+
+function snapshot(): string {
+  return window.location.pathname + window.location.search;
 }
 
 const listeners = new Set<() => void>();
@@ -21,23 +25,37 @@ function subscribe(cb: () => void): () => void {
   };
 }
 
-export function navigate(path: AppPath): void {
-  if (path === current()) return;
-  window.history.pushState(null, '', path);
+export function href(path: AppPath, params?: Record<string, string>): string {
+  const q = params ? new URLSearchParams(params).toString() : '';
+  return q ? `${path}?${q}` : path;
+}
+
+export function navigate(path: AppPath, params?: Record<string, string>): void {
+  const target = href(path, params);
+  if (target === snapshot()) return;
+  window.history.pushState(null, '', target);
   for (const l of [...listeners]) l();
   window.scrollTo(0, 0);
 }
 
+export function useLocation(): { path: AppPath; params: URLSearchParams } {
+  const snap = useSyncExternalStore(subscribe, snapshot);
+  return useMemo(() => {
+    const url = new URL(snap, 'http://local');
+    return { path: toPath(url.pathname), params: url.searchParams };
+  }, [snap]);
+}
+
 export function usePath(): AppPath {
-  return useSyncExternalStore(subscribe, current);
+  return useLocation().path;
 }
 
 /** onClick for <a href> links: client-side navigation, but new tabs still work. */
-export function linkHandler(path: AppPath) {
+export function linkHandler(path: AppPath, params?: Record<string, string>) {
   return (e: MouseEvent<HTMLAnchorElement>) => {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
       return;
     e.preventDefault();
-    navigate(path);
+    navigate(path, params);
   };
 }

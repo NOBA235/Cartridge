@@ -5,7 +5,7 @@ Built for the #BuildHybridAI 2026 hackathon with Firebase AI Logic (cloud Gemini
 
 **Public standards go to the cloud once. Your diagram never does.**
 
-> Status: Phase 1 of 8 (loading a rulebook and checking quotes against it). See [docs/STATUS.md](docs/STATUS.md).
+> Status: Phase 2 of 8 (making a cartridge in the cloud and viewing its cards). See [docs/STATUS.md](docs/STATUS.md).
 > Reference tool, not an official authority.
 
 ## Privacy
@@ -29,6 +29,15 @@ cp .env.example .env.local   # fill in your Firebase web config
 npm run dev                  # http://localhost:5173, hidden dev page at /dev
 npm test                     # typecheck + unit and type tests
 npm run smoke:cloud          # one real cloud call (needs .env.local and a registered debug token)
+```
+
+A real end-to-end cartridge from a public document (PowerShell):
+
+```powershell
+$env:SMOKE_SOURCE = "C:\path\to\standard.pdf"   # or an https:// URL, .md or .txt
+$env:SMOKE_LICENCE = "CC BY-SA 4.0"
+$env:SMOKE_SECTIONS = "2"                       # or "all"
+npm run smoke:compile
 ```
 
 The app always uses the real models: Gemini Nano on this device and Gemini in the cloud, both

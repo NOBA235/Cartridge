@@ -1,13 +1,15 @@
 /**
  * Load a rulebook: pick a PDF, .txt or .md file, or paste text. The text is
- * read on this device, checked, and saved locally. Nothing is sent anywhere
- * on this screen. Making the cartridge from it (cloud, once) is the next step.
+ * read on this device, checked, and saved locally. Nothing is sent until the
+ * user presses 'Make the cartridge' on a saved rulebook (cloud, once).
  */
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { draftFromFile, draftFromPaste } from '@/cartridge/loadSource';
 import { confirmSource, SourceError, type SourceDoc, type SourceDraft } from '@/cartridge/source';
 import { sourcesStore } from '@/cartridge/store';
 import { verifyQuote, type VerifyResult } from '@/cartridge/verifyQuote';
+import { CartridgeList } from '@/ui/components/CartridgeList';
+import { CompilePanel } from '@/ui/components/CompilePanel';
 import { SourceContext } from '@/ui/components/SourceContext';
 import { Button } from '@/ui/primitives/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/primitives/card';
@@ -149,6 +151,7 @@ function SavedSource({
         </div>
       </div>
       {selected && <QuoteCheck source={s} />}
+      <CompilePanel source={s} />
     </li>
   );
 }
@@ -274,7 +277,8 @@ export function LoadRulebook() {
         <h1 className="text-2xl font-semibold tracking-tight">Load a rulebook</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Use a public standard or regulation that is openly licensed or in the public domain. It is
-          read and saved on this device. Nothing is sent anywhere on this screen.
+          read and saved on this device. Its text goes to the cloud only when you press &lsquo;Make
+          the cartridge&rsquo;, once.
         </p>
       </header>
 
@@ -456,6 +460,8 @@ export function LoadRulebook() {
           </ul>
         )}
       </section>
+
+      <CartridgeList />
     </section>
   );
 }

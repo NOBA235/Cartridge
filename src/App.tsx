@@ -5,6 +5,7 @@ import { EgressPanel } from '@/ui/components/EgressPanel';
 import { useEgressLog } from '@/ui/hooks/useStores';
 import { Button } from '@/ui/primitives/button';
 import { linkHandler, usePath, type AppPath } from '@/ui/router';
+import { CartridgeView } from '@/ui/screens/CartridgeView';
 import { DevPage } from '@/ui/screens/DevPage';
 import { LoadRulebook } from '@/ui/screens/LoadRulebook';
 import { Welcome } from '@/ui/screens/Welcome';
@@ -17,6 +18,7 @@ const NAV: ReadonlyArray<{ path: AppPath; label: string }> = [
 function Screen({ path }: { path: AppPath }) {
   if (path === '/dev') return <DevPage />;
   if (path === '/load') return <LoadRulebook />;
+  if (path === '/cartridge') return <CartridgeView />;
   return <Welcome />;
 }
 

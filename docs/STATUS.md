@@ -1,12 +1,12 @@
 # Cartridge status
 
-Last updated: 2026-11-16 (Phase 1).
+Last updated: 2026-11-16 (Phase 2).
 
 ## Phase checklist
 
 - [x] Phase 0: Scaffold, guardrails, hybrid plumbing (one item open: a real cloud call, see below)
 - [x] Phase 1: Source ingestion and quote verification
-- [ ] Phase 2: Cloud compiler and card viewer
+- [x] Phase 2: Cloud compiler and card viewer (one item open: a real compile, see below)
 - [ ] Phase 3: Ask engine, router, validators, offline queue
 - [ ] Phase 4: Exam Day (needs a real device)
 - [ ] Phase 5: Versions and proposed rules
@@ -40,6 +40,17 @@ Last updated: 2026-11-16 (Phase 1).
 - [x] Chunker: headings or pages, at most 30,000 characters, one paragraph of overlap, page ranges
 - [x] idb stores: sources, cartridges, versions, queue, telemetry; SHA-256 source hash
 - Demo source: dropped by the owner (see Decisions). Any rulebook the user loads is the source.
+
+### Phase 2 acceptance
+
+- [ ] Making a cartridge from a real public document works. Code and the `npm run smoke:compile`
+      command are ready; blocked on the App Check debug token (same as Phase 0).
+- [x] Every kept rule's quote verifies by construction: quotes are checked before a rule is kept,
+      and checked again at the end (compile throws rather than return an unverified rule).
+- [x] Tests for dedupe and ID assignment (`reduce.test.ts`, 11 tests)
+- [x] Compile logic tested with a fake cloud (`compile.test.ts`, 24 tests; fake lives in the test only)
+- [x] Progress UI ('Reading section N of M', 'Verified X of Y quotes'), left-out rules with reasons
+- [x] Card viewer: search, severity chips, quote highlighted in source context, JSON export/import
 
 ## Versions in use
 
@@ -130,6 +141,42 @@ zod 4.6.7, motion 14.14.0, idb 8.0.4, minisearch 7.2.0, pdfjs-dist 6.5.438.
   Overlap is skipped if the previous paragraph is over a quarter of the limit.
   `stripPageMarkers()` exists for Phase 2, because a model may copy a marker into a quote.
 - **File limit**: 50 MB per file (a guard against a frozen tab; Phase 7 revisits very large sources).
+- **Making a cartridge (Phase 2)** (`src/cartridge/compile.ts`):
+  - One COMPILE call per section, sequential (progress reads "Reading section N of M"; avoids
+    rate limits). Each rule is checked with zod on its own, so one malformed rule never sinks a
+    section. COMPILE timeout 300 s (RequestOptions.timeout), REPAIR_QUOTE 180 s.
+  - **Beyond the brief, two code checks against invented numbers:** a rule is left out if a
+    number in its instruction (`then`) does not appear in its section; a rule's calculation is
+    removed (rule kept, note recorded) if its factor does not appear in the verified quote.
+  - Quotes are cleaned before checking: `[p. N]` markers, wrapping quotation marks, edge ellipses
+    and extra whitespace are removed. Quotes over 300 characters count as failed.
+  - One repair round per section, only for rules whose quote failed, asking for an exact passage.
+  - The page shown is the page where the quote was found (preferring the rule's own section when
+    the passage occurs more than once), never the page the model claimed. For text and Markdown
+    sources there are no pages.
+  - Dedupe: same quote after normalisation, or title word similarity of at least 0.8 (Jaccard,
+    small words ignored; `config.compile.titleSimilarity`). The first in source order is kept and
+    takes the duplicate's keywords (up to 10).
+  - Cap: 120 rules (`config.compile.maxRules`). Over the cap, critical rules are kept first, then
+    major, then minor, each in source order; the rest are listed as left out.
+  - IDs: R001, R002, ... in source order, widening to R0001 past 999.
+  - If the very first section fails, compile stops instead of repeating a failing call for every
+    section (most likely a setup problem such as App Check). Later failures are recorded and
+    skipped. Going offline stops the run; nothing is saved.
+  - The job runs outside the screen (`compileJob.ts`), so progress survives navigation. The
+    finished cartridge is saved as version 1 (cartridges + versions stores) before 'done' shows.
+- **Data model addition:** `Cartridge.sourceName` and `Cartridge.sourceLicence` (optional), so the
+  rulebook's licence travels with exported quotes. `CartridgeSchema` also rejects duplicate rule IDs.
+- **Import** always gives the cartridge a new id (never overwrites one on this device) and adds a
+  changelog line. It is linked to a saved rulebook by `sourceHash`. Without that rulebook, the card
+  viewer says quotes are not checked and never shows 'Verified against the source'.
+- **Card viewer** checks each quote on this device when a card is opened, and shows 'Verified
+  against the source' only if that check passes; a failing quote is flagged "Do not rely on this
+  rule".
+- **Smoke tests** have their own tsconfig (`tsconfig.smoke.json`, adds Node types).
+  `npm run smoke:compile` makes a real cartridge from `SMOKE_SOURCE` (path or https URL) with
+  licence `SMOKE_LICENCE`, reading `SMOKE_SECTIONS` sections (default 2, or `all`), and writes the
+  JSON to the OS temp folder.
 
 ## Docs vs brief differences
 
