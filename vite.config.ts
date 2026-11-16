@@ -10,6 +10,10 @@ export default defineConfig(({ mode }) => {
   const smoke = mode === 'smoke';
   return {
     plugins: [react(), tailwindcss()],
+    // Own ports, so service workers, caches and IndexedDB left at localhost:5173
+    // by other projects can never serve their files to this app.
+    server: { port: 5180, strictPort: true },
+    preview: { port: 4180, strictPort: true },
     resolve: {
       alias: {
         '@': path.resolve(import.meta.dirname, './src'),

@@ -26,7 +26,7 @@ Requirements: Node 20.19+ (tested on Node 24), desktop Chrome 139+ for on-device
 ```sh
 npm install
 cp .env.example .env.local   # fill in your Firebase web config
-npm run dev                  # http://localhost:5173, hidden dev page at /dev
+npm run dev                  # http://localhost:5180, hidden dev page at /dev
 npm test                     # typecheck + unit and type tests
 npm run smoke:cloud          # one real cloud call (needs .env.local and a registered debug token)
 ```
