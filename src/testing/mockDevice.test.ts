@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SAMPLE_RULES } from '@/dev/sampleRules';
+import { SAMPLE_RULES } from './sampleRules';
 import { asPrivate, asPublic } from '@/privacy';
 import { firstNumber, MockDeviceModel, seededRandom } from './mockDevice';
 

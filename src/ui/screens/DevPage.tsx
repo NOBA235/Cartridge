@@ -1,16 +1,16 @@
 /**
  * Hidden developer page at /dev. Not linked from the app.
- * Buttons: Prepare device, Ask device, Ask cloud. Shows inferenceSource.
+ * Prepare this device (real Gemini Nano download) and Ask cloud (real call,
+ * after approval). Shows inferenceSource. No stand-in models or sample data.
  */
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { cloudJson, CloudError } from '@/ai/cloud';
-import { createDeviceModel } from '@/ai/device';
-import type { DeviceSelection, DeviceStatus } from '@/ai/deviceModel';
+import { prepareThisDevice } from '@/ai/device';
+import type { DeviceStatus } from '@/ai/deviceModel';
 import { getFirebase } from '@/ai/firebase';
 import { DEV_PING_TEMPLATE } from '@/ai/prompts';
 import { config } from '@/config';
 import { DEV_PING_TASK, DevPingReply } from '@/dev/devTasks';
-import { SAMPLE_RULES } from '@/dev/sampleRules';
 import { asPrivate, fillTemplate, type Public } from '@/privacy';
 import { CloudSetting } from '@/ui/components/CloudSetting';
 import { DeclassifyDialog, type DeclassifyRequest } from '@/ui/components/DeclassifyDialog';
@@ -32,16 +32,10 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 export function DevPage() {
   const fb = useMemo(() => getFirebase(), []);
   const online = useOnline();
-  const device = useMemo(() => createDeviceModel(SAMPLE_RULES.map((r) => r.id)), []);
 
   const [progress, setProgress] = useState<number | null>(null);
   const [status, setStatus] = useState<DeviceStatus | null>(null);
   const [preparing, setPreparing] = useState(false);
-
-  const [deviceQ, setDeviceQ] = useState('How many toilets do we need for 400 people?');
-  const [deviceResult, setDeviceResult] = useState<DeviceSelection | null>(null);
-  const [deviceError, setDeviceError] = useState<string | null>(null);
-  const [deviceBusy, setDeviceBusy] = useState(false);
 
   const [cloudQ, setCloudQ] = useState('Say hello in five words.');
   const [pending, setPending] = useState<DeclassifyRequest | null>(null);
@@ -56,24 +50,9 @@ export function DevPage() {
   const prepare = async () => {
     setPreparing(true);
     setProgress(0);
-    const s = await device.prepare((p) => setProgress(p));
+    const s = await prepareThisDevice((p) => setProgress(p));
     setStatus(s);
     setPreparing(false);
-  };
-
-  const askDevice = async (e: FormEvent) => {
-    e.preventDefault();
-    setDeviceBusy(true);
-    setDeviceError(null);
-    setDeviceResult(null);
-    try {
-      const question = asPrivate(deviceQ, 'user-question');
-      setDeviceResult(await device.selectRule({ question, candidates: SAMPLE_RULES }));
-    } catch (err) {
-      setDeviceError((err as Error).message);
-    } finally {
-      setDeviceBusy(false);
-    }
   };
 
   const askCloud = (e: FormEvent) => {
@@ -109,7 +88,6 @@ export function DevPage() {
     }
   };
 
-  const deviceRoute = deviceResult?.source === 'mock' ? 'MOCK' : 'ON_DEVICE';
   const cloudRoute = routeFromInferenceSource(cloudResult?.source);
 
   return (
@@ -121,16 +99,6 @@ export function DevPage() {
         <h1 className="text-2xl font-semibold">/dev: hybrid plumbing check</h1>
       </header>
 
-      {device.kind === 'mock' && (
-        <div
-          role="status"
-          className="rounded-lg border border-warning/50 bg-warning/10 p-3 text-sm text-warning"
-        >
-          Mock device model in use (VITE_MOCK_DEVICE=true). Device results on this page are not from
-          Gemini Nano and are not measured on a real device. Error rate: {config.mockErrorRate}.
-        </div>
-      )}
-
       <Card>
         <CardHeader>
           <CardTitle>Status</CardTitle>
@@ -141,9 +109,7 @@ export function DevPage() {
               {fb.ok ? `Connected to ${fb.app.options.projectId ?? '?'}` : fb.reason}
             </Row>
             <Row label="App Check">{fb.ok ? fb.appCheckMode : 'Not started'}</Row>
-            <Row label="Device model">
-              {device.kind === 'mock' ? 'mock' : 'Gemini Nano via Firebase AI Logic'}
-            </Row>
+            <Row label="Device model">Gemini Nano via Firebase AI Logic</Row>
             <Row label="Network">{online ? 'Online' : 'Offline'}</Row>
             <Row label="Cloud models">
               <code className="text-xs">
@@ -161,7 +127,8 @@ export function DevPage() {
           <CardTitle>1. Prepare this device</CardTitle>
           <CardDescription>
             Downloads Gemini Nano on first use. This can take several minutes and must start from a
-            click.
+            click. Asking the device a question needs the rules of a real cartridge, so it is
+            checked once a rulebook has been turned into a cartridge.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
@@ -191,50 +158,7 @@ export function DevPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>2. Ask device</CardTitle>
-          <CardDescription>
-            Picks one of {SAMPLE_RULES.length} invented dev-sample rules (
-            {SAMPLE_RULES.map((r) => r.id).join(', ')}). Stays on this device.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={askDevice} className="flex flex-col gap-3">
-            <label className="text-sm" htmlFor="device-q">
-              Question
-            </label>
-            <input
-              id="device-q"
-              className={inputClass}
-              value={deviceQ}
-              onChange={(e) => setDeviceQ(e.target.value)}
-            />
-            <Button type="submit" disabled={deviceBusy || !deviceQ.trim()} className="self-start">
-              {deviceBusy ? 'Asking…' : 'Ask device'}
-            </Button>
-          </form>
-          {deviceResult && (
-            <dl className="mt-4 flex flex-col gap-1">
-              <Row label="Route">
-                <RouteBadge route={deviceRoute} />
-              </Row>
-              <Row label="inferenceSource">
-                {deviceResult.source === 'mock' ? 'none (mock)' : 'on_device'}
-              </Row>
-              <Row label="ruleId">{deviceResult.ruleId}</Row>
-              <Row label="quantity">{deviceResult.quantity}</Row>
-            </dl>
-          )}
-          {deviceError && (
-            <p role="alert" className="mt-3 text-sm text-destructive">
-              {deviceError}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>3. Ask cloud</CardTitle>
+          <CardTitle>2. Ask cloud</CardTitle>
           <CardDescription>
             Your text is Private. You will see exactly what is sent and approve it first.
           </CardDescription>

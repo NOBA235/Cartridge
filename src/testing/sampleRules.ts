@@ -1,6 +1,7 @@
 /**
- * DEV SAMPLE. Invented rules for the /dev page and tests only. They are not
- * taken from any real standard or handbook, and must never be shown as one.
+ * TEST ONLY. Invented rules used as fixtures by automated tests. They are not
+ * taken from any real standard and are never shown in the app (ESLint blocks
+ * importing src/testing from app code).
  */
 import type { Rule } from '@/cartridge/types';
 

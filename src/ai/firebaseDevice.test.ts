@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SAMPLE_RULES } from '@/dev/sampleRules';
+import { SAMPLE_RULES } from '@/testing/sampleRules';
 import { asPrivate } from '@/privacy';
 import { egressLog } from '@/telemetry/egress';
 import {
   buildSelectSchema,
   FirebaseDeviceModel,
+  prepareThisDevice,
   type DeviceModelFactory,
   type DeviceModelLike,
   type DeviceModelParams,
@@ -162,5 +163,31 @@ describe('FirebaseDeviceModel', () => {
       code: 'PROMPT_TOO_LONG',
     });
     expect(f.generateContent).not.toHaveBeenCalled();
+  });
+});
+
+describe('prepareThisDevice', () => {
+  it('downloads without a cartridge: no response schema, progress ends at 1', async () => {
+    const f = fake();
+    const progress: number[] = [];
+    const status = await prepareThisDevice((p) => progress.push(p), f.factory);
+    expect(status).toEqual({ state: 'ready', kind: 'firebase' });
+    expect(progress).toEqual([0.5, 1]);
+    expect(f.params()?.responseConstraint).toBeUndefined();
+    expect(f.generateContent).not.toHaveBeenCalled();
+  });
+
+  it('reports unavailable when the browser has no on-device model', async () => {
+    const f = fake({ adapter: false });
+    expect((await prepareThisDevice(() => {}, f.factory)).state).toBe('unavailable');
+    expect(f.initializeDeviceModel).not.toHaveBeenCalled();
+  });
+
+  it('reports unavailable when the download fails', async () => {
+    const f = fake({ initError: new Error('Download interrupted') });
+    expect(await prepareThisDevice(() => {}, f.factory)).toMatchObject({
+      state: 'unavailable',
+      reason: 'Download interrupted',
+    });
   });
 });

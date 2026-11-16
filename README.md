@@ -31,8 +31,10 @@ npm test                     # typecheck + unit and type tests
 npm run smoke:cloud          # one real cloud call (needs .env.local and a registered debug token)
 ```
 
-`VITE_MOCK_DEVICE=true` (the default) uses a mock device model so you can develop without Gemini
-Nano. Everything it produces is labelled 'mock'.
+The app always uses the real models: Gemini Nano on this device and Gemini in the cloud, both
+through Firebase AI Logic. There is no mock mode and no sample data. If Gemini Nano is not
+available, the app says so. Automated tests use a stand-in from `src/testing`, which ESLint keeps
+out of app code.
 
 ### Firebase setup
 
@@ -43,7 +45,7 @@ Nano. Everything it produces is labelled 'mock'.
    browser console. Register it under **Security > App Check > Apps > Manage debug tokens**.
    Optionally paste it into `VITE_APPCHECK_DEBUG_TOKEN` in `.env.local`. Never commit it.
 4. For on-device inference in Chrome, enable `chrome://flags/#prompt-api-for-gemini-nano-multimodal-input`,
-   restart Chrome, set `VITE_MOCK_DEVICE=false`, and press **Prepare this device** on `/dev`.
+   restart Chrome, and press **Prepare this device** on `/dev`.
 
 ## Where Firebase AI Logic is called
 

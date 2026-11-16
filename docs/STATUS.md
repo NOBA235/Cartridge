@@ -46,6 +46,22 @@ zod 4.6.7, motion 14.14.0, idb 8.0.4, minisearch 7.2.0, pdfjs-dist 6.5.438.
 
 ## Decisions
 
+- **Owner decision, 2026-11-16: real product only, no mock or demo data.** This overrides parts of
+  the brief:
+  - The app always uses Gemini Nano through Firebase AI Logic. `VITE_MOCK_DEVICE` and
+    `VITE_MOCK_ERROR_RATE` are gone. If Gemini Nano is unavailable the app says so, and the router
+    escalates with `DEVICE_UNAVAILABLE` (cloud with a 'Cloud' badge, or the offline queue).
+  - The mock device model and the invented sample rules moved to `src/testing/`, used only by
+    automated tests (which cannot run Gemini Nano). ESLint fails if app code imports
+    `src/testing` (checked by adding such an import). The production bundle contains neither.
+  - The 'Mock device' route badge is removed.
+  - No pre-loaded demo cartridge and no 'Try it now' button in Phase 6. Users load a rulebook
+    and make the cartridge themselves. Consequence: a first-time user (or a judge) needs a
+    network connection and some minutes for the cloud step and the Gemini Nano download before
+    the Ask screen works. The brief's "demo can be completed without any manual setup" no longer
+    applies as written.
+  - Exam reports will always say `measuredOn: 'device'` in the app. The `'mock'` value remains in
+    the data model only for test fixtures.
 - **TypeScript 6.0, not 7.0.** typescript-eslint 8.72 supports TypeScript below 6.1 only.
 - **shadcn/ui packages.** shadcn/ui components need `radix-ui`, `class-variance-authority`,
   `clsx` and `tailwind-merge`. Treated as part of shadcn/ui. `lucide-react` is not installed (no icons yet).

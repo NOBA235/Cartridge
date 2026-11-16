@@ -9,18 +9,6 @@
  */
 export type CloudTaskName = 'DEV_PING' | 'COMPILE' | 'REPAIR_QUOTE' | 'EXAM' | 'TUTOR' | 'ANSWER';
 
-function envFlag(value: string | undefined, fallback: boolean): boolean {
-  if (value === undefined || value === '') return fallback;
-  return value.toLowerCase() === 'true';
-}
-
-function envRate(value: string | undefined, fallback: number): number {
-  const n = Number(value);
-  return value !== undefined && value !== '' && Number.isFinite(n) && n >= 0 && n <= 1
-    ? n
-    : fallback;
-}
-
 export const config = {
   cloudModels: {
     DEV_PING: 'gemini-3.5-flash-lite',
@@ -40,6 +28,4 @@ export const config = {
   deviceMaxPromptChars: 16_000,
   /** Shown in the UI and used by the device model's createOptions. */
   deviceLanguages: ['en'],
-  mockDevice: envFlag(import.meta.env.VITE_MOCK_DEVICE, true),
-  mockErrorRate: envRate(import.meta.env.VITE_MOCK_ERROR_RATE, 0.1),
 } as const;

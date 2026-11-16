@@ -4,22 +4,19 @@ import { cn } from '@/lib/utils';
  * Where an answer came from. Drawn from inferenceSource for real calls:
  * - ON_DEVICE: Gemini Nano reported on_device.
  * - IN_CLOUD: the cloud model through Firebase AI Logic.
- * - MOCK: the mock device model. Never presented as on-device.
  * - QUEUED: waiting for signal.
  */
-export type Route = 'ON_DEVICE' | 'IN_CLOUD' | 'MOCK' | 'QUEUED';
+export type Route = 'ON_DEVICE' | 'IN_CLOUD' | 'QUEUED';
 
 const LABELS: Record<Route, string> = {
   ON_DEVICE: 'On this device',
   IN_CLOUD: 'Cloud',
-  MOCK: 'Mock device (not Gemini Nano)',
   QUEUED: 'Waiting for signal',
 };
 
 const STYLES: Record<Route, string> = {
   ON_DEVICE: 'border-success/40 bg-success/10 text-success',
   IN_CLOUD: 'border-primary/40 bg-primary/10 text-primary',
-  MOCK: 'border-warning/50 bg-warning/10 text-warning',
   QUEUED: 'border-border bg-muted text-muted-foreground',
 };
 

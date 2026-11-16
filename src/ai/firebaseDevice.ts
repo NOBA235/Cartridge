@@ -44,7 +44,8 @@ export interface DeviceModelLike {
 }
 
 export interface DeviceModelParams {
-  responseConstraint: object;
+  /** Omitted only by prepareThisDevice(), which never prompts. */
+  responseConstraint?: object;
   systemPrompt: string;
   languages: string[];
 }
@@ -88,12 +89,50 @@ const firebaseFactory: DeviceModelFactory = (params) => {
             { role: 'system', content: [{ type: 'text', value: params.systemPrompt }] },
           ],
         },
-        promptOptions: { responseConstraint: params.responseConstraint },
+        ...(params.responseConstraint
+          ? { promptOptions: { responseConstraint: params.responseConstraint } }
+          : {}),
       },
     },
     { baseUrl: DEVICE_ONLY_BASE_URL },
   );
 };
+
+const UNAVAILABLE_REASON =
+  'This browser has no on-device model. It needs desktop Chrome 139 or newer with Gemini Nano enabled.';
+
+/** Shared by FirebaseDeviceModel.prepare() and prepareThisDevice(). */
+async function initialise(
+  model: DeviceModelLike,
+  onProgress: (fraction: number) => void,
+): Promise<DeviceStatus> {
+  if (!hasOnDeviceAdapter(model)) {
+    return { state: 'unavailable', kind: 'firebase', reason: UNAVAILABLE_REASON };
+  }
+  await model.initializeDeviceModel((p) => onProgress(Math.max(0, Math.min(1, p))));
+  onProgress(1);
+  return { state: 'ready', kind: 'firebase' };
+}
+
+/**
+ * 'Prepare this device': downloads Gemini Nano if needed and reports progress.
+ * The download belongs to the browser, not to a cartridge, so this works before
+ * any rulebook is loaded. Must be called from a user gesture.
+ */
+export async function prepareThisDevice(
+  onProgress: (fraction: number) => void,
+  factory: DeviceModelFactory = firebaseFactory,
+): Promise<DeviceStatus> {
+  try {
+    const model = factory({
+      systemPrompt: DEVICE_SELECT_SYSTEM,
+      languages: [...config.deviceLanguages],
+    });
+    return await initialise(model, onProgress);
+  } catch (e) {
+    return { state: 'unavailable', kind: 'firebase', reason: (e as Error).message };
+  }
+}
 
 export class FirebaseDeviceModel implements DeviceModel {
   readonly kind = 'firebase' as const;
@@ -121,18 +160,9 @@ export class FirebaseDeviceModel implements DeviceModel {
         systemPrompt: DEVICE_SELECT_SYSTEM,
         languages: [...config.deviceLanguages],
       });
-      if (!hasOnDeviceAdapter(this.model)) {
-        return {
-          state: 'unavailable',
-          kind: this.kind,
-          reason:
-            'This browser has no on-device model. It needs desktop Chrome 139 or newer with Gemini Nano enabled.',
-        };
-      }
-      await this.model.initializeDeviceModel((p) => onProgress(Math.max(0, Math.min(1, p))));
-      this.ready = true;
-      onProgress(1);
-      return { state: 'ready', kind: this.kind };
+      const status = await initialise(this.model, onProgress);
+      this.ready = status.state === 'ready';
+      return status;
     } catch (e) {
       this.ready = false;
       return { state: 'unavailable', kind: this.kind, reason: (e as Error).message };

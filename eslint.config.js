@@ -4,6 +4,18 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
+// Only src/privacy may reach the internal declassified minting function.
+const PRIVACY_INTERNAL = {
+  group: ['@/privacy/classified', '**/privacy/classified'],
+  message: "Import from '@/privacy' instead.",
+};
+
+// The app uses only real models and real data. Stand-ins live in src/testing, for tests only.
+const TEST_ONLY = {
+  group: ['@/testing/*', '**/testing/*'],
+  message: 'src/testing is for automated tests only. The app never uses stand-ins or sample data.',
+};
+
 export default tseslint.config(
   { ignores: ['dist', 'coverage', 'node_modules'] },
   {
@@ -35,22 +47,17 @@ export default tseslint.config(
           message: 'Use Firebase AI Logic (src/ai).',
         },
       ],
-      // Only src/privacy may reach the internal declassified minting function.
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['@/privacy/classified', '**/privacy/classified'],
-              message: "Import from '@/privacy' instead.",
-            },
-          ],
-        },
-      ],
+      'no-restricted-imports': ['error', { patterns: [PRIVACY_INTERNAL, TEST_ONLY] }],
     },
   },
   {
-    files: ['src/privacy/**'],
-    rules: { 'no-restricted-imports': 'off' },
+    // Tests and test fixtures may use the stand-ins in src/testing.
+    files: ['src/testing/**', '**/*.test.{ts,tsx}', '**/*.test-d.ts', '**/*.smoke.ts'],
+    rules: { 'no-restricted-imports': ['error', { patterns: [PRIVACY_INTERNAL] }] },
+  },
+  {
+    files: ['src/privacy/**/*.ts'],
+    ignores: ['**/*.test.ts', '**/*.test-d.ts'],
+    rules: { 'no-restricted-imports': ['error', { patterns: [TEST_ONLY] }] },
   },
 );

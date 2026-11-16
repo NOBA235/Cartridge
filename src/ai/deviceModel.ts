@@ -1,9 +1,10 @@
 /**
  * The device model only selects which rule answers a question. Code writes the
- * answer from the rule. Two implementations:
- * - FirebaseDeviceModel (./firebaseDevice.ts): Gemini Nano through Firebase AI Logic.
- * - MockDeviceModel (./mockDevice.ts): keyword overlap, for development. Every
- *   result it produces carries source 'mock'.
+ * answer from the rule.
+ * - FirebaseDeviceModel (./firebaseDevice.ts): Gemini Nano through Firebase AI
+ *   Logic. The only implementation the app uses.
+ * - src/testing/mockDevice.ts: a stand-in for automated tests only. Every result
+ *   it produces carries source 'mock'.
  */
 import type { Rule } from '@/cartridge/types';
 import type { Classified } from '@/privacy';

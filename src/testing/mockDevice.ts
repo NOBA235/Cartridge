@@ -1,15 +1,16 @@
 /**
- * MOCK device model. Not Gemini Nano. Every result has source 'mock', and the
- * UI must badge it as mock.
+ * TEST ONLY. A stand-in device model for automated tests, which cannot run
+ * Gemini Nano. It is never used by the app (ESLint blocks importing
+ * src/testing from app code). Every result has source 'mock'.
  *
  * Picks the candidate with the largest keyword overlap with the question, or
  * NONE when nothing overlaps. With probability `errorRate` it returns a wrong
- * answer on purpose, so Exam Day and the escalation paths can be developed
- * without a real device. Deterministic for a given seed.
+ * answer on purpose, so tests can exercise escalation and Exam Day scoring.
+ * Deterministic for a given seed.
  */
 import { NONE, type Rule } from '@/cartridge/types';
 import { reveal } from '@/privacy';
-import type { DeviceModel, DeviceSelection, DeviceStatus, SelectRuleInput } from './deviceModel';
+import type { DeviceModel, DeviceSelection, DeviceStatus, SelectRuleInput } from '@/ai/deviceModel';
 
 export interface MockDeviceOptions {
   /** Probability between 0 and 1 of returning a wrong answer. */
