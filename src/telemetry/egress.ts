@@ -11,10 +11,19 @@
  * - 'unexpected-cloud': a call made for the on-device model reported that it
  *   ran in the cloud. This should never happen; it is logged so it is visible.
  *
- * Phase 0 keeps the log in memory. Phase 1 persists it to IndexedDB.
+ * The log lives in memory and, once attachPersistence() has run, is also
+ * saved to IndexedDB (telemetry store) so it survives reloads.
  */
 import { createStore } from '@/lib/store';
 import type { DeclassifyScope, PublicOrigin } from '@/privacy';
+
+export interface EgressPersistence {
+  load(): Promise<readonly EgressEntry[]>;
+  save(entry: EgressEntry): Promise<void>;
+}
+
+/** 'memory': not attached yet. 'saved': stored on this device. 'failed': storage unavailable, memory only. */
+export type PersistenceState = 'memory' | 'saved' | 'failed';
 
 export type EgressKind = 'cloud-call' | 'declassify' | 'unexpected-cloud';
 export type EgressStatus = 'ok' | 'error';
@@ -47,11 +56,22 @@ export function utf8Bytes(text: string): number {
 }
 
 const store = createStore<readonly EgressEntry[]>([]);
+const persistenceState = createStore<PersistenceState>('memory');
 let nextId = 1;
+let persistence: EgressPersistence | undefined;
+
+function persist(entry: EgressEntry): void {
+  if (!persistence) return;
+  persistence.save(entry).catch(() => persistenceState.set('failed'));
+}
 
 export const egressLog = {
   subscribe: store.subscribe,
   entries: (): readonly EgressEntry[] => store.get(),
+  persistence: {
+    subscribe: persistenceState.subscribe,
+    get: persistenceState.get,
+  },
   record(entry: NewEgressEntry): EgressEntry {
     const { text, ...rest } = entry;
     const full: EgressEntry = Object.freeze({
@@ -61,7 +81,28 @@ export const egressLog = {
       preview: text.length > PREVIEW_LIMIT ? `${text.slice(0, PREVIEW_LIMIT)}…` : text,
     });
     store.set((prev) => [...prev, full]);
+    persist(full);
     return full;
+  },
+  /**
+   * Loads earlier entries from storage and saves new ones from now on. Entries
+   * recorded before this call are renumbered after the stored ones and saved.
+   */
+  async attachPersistence(p: EgressPersistence): Promise<void> {
+    let stored: readonly EgressEntry[];
+    try {
+      stored = [...(await p.load())].sort((a, b) => a.id - b.id);
+    } catch {
+      persistenceState.set('failed');
+      return;
+    }
+    persistence = p;
+    const maxStored = stored.reduce((m, e) => Math.max(m, e.id), 0);
+    const pending = store.get().map((e, i) => Object.freeze({ ...e, id: maxStored + i + 1 }));
+    nextId = maxStored + pending.length + 1;
+    store.set([...stored, ...pending]);
+    persistenceState.set('saved');
+    pending.forEach(persist);
   },
   totalBytesSent(): number {
     return store.get().reduce((sum, e) => sum + e.bytesSent, 0);
@@ -77,6 +118,8 @@ export const egressLog = {
   /** Test helper. */
   _reset(): void {
     nextId = 1;
+    persistence = undefined;
+    persistenceState.set('memory');
     store.set([]);
   },
 };
