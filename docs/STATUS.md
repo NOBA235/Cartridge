@@ -5,7 +5,7 @@ Last updated: 2026-11-16 (Phase 1).
 ## Phase checklist
 
 - [x] Phase 0: Scaffold, guardrails, hybrid plumbing (one item open: a real cloud call, see below)
-- [x] Phase 1: Source ingestion and quote verification (demo source not chosen yet)
+- [x] Phase 1: Source ingestion and quote verification
 - [ ] Phase 2: Cloud compiler and card viewer
 - [ ] Phase 3: Ask engine, router, validators, offline queue
 - [ ] Phase 4: Exam Day (needs a real device)
@@ -18,7 +18,9 @@ Last updated: 2026-11-16 (Phase 1).
 
 - [x] `npm test` passes (typecheck, unit tests, type tests)
 - [x] `npm run dev` starts and serves `/` and `/dev`
-- [ ] `/dev` works with the mock (code done; needs a click-through in a browser)
+- [ ] `/dev` works: **Prepare this device** (real Gemini Nano) and **Ask cloud** (real call). Code
+      done; needs a click-through in Chrome. Asking the device moved to the Ask screen, because it
+      needs the rules of a real cartridge.
 - [ ] A real cloud call works with real Firebase config. `npm run smoke:cloud` history:
   - 2026-11-16, first run: "requires the Firebase AI API ('firebasevertexai.googleapis.com') to be enabled".
   - 2026-11-16, after the owner enabled AI Logic (Gemini Developer API): the API is now reached and
@@ -37,7 +39,7 @@ Last updated: 2026-11-16 (Phase 1).
 - [x] Warning for PDFs with almost no text
 - [x] Chunker: headings or pages, at most 30,000 characters, one paragraph of overlap, page ranges
 - [x] idb stores: sources, cartridges, versions, queue, telemetry; SHA-256 source hash
-- [ ] Demo source chosen by the owner (openly licensed or public domain)
+- Demo source: dropped by the owner (see Decisions). Any rulebook the user loads is the source.
 
 ## Versions in use
 
@@ -180,6 +182,7 @@ zod 4.6.7, motion 14.14.0, idb 8.0.4, minisearch 7.2.0, pdfjs-dist 6.5.438.
 
 ## Open questions for the owner
 
-- **Demo source** (Phase 1): which openly licensed or public-domain document?
+- Phase 2 needs one real public document to run the cloud compiler end to end. The owner picks it
+  then; it is not committed to the repo.
 - Ask screen escalation (Phase 3): should 'Ask the cloud when needed' count as the user's standing
   approval for sending a question, or should each escalation show the preview dialog first?
