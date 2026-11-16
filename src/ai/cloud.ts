@@ -14,6 +14,7 @@ import { getGenerativeModel, InferenceMode, type ObjectSchema } from 'firebase/a
 import type { z } from 'zod';
 import { config, type CloudTaskName } from '@/config';
 import { assertPublic, type Public } from '@/privacy';
+import { connectivity } from '@/queue/connectivity';
 import { egressLog, utf8Bytes } from '@/telemetry/egress';
 import { getFirebase } from './firebase';
 
@@ -175,10 +176,12 @@ function firebaseCloudModel(task: CloudTask): CloudModelLike {
   return model;
 }
 
-/** Default client: real Firebase AI Logic, browser online state. */
+/**
+ * Default client: real Firebase AI Logic. Refuses while the browser is offline
+ * or 'Simulated no signal' is on (see src/queue/connectivity.ts).
+ */
 export const cloudJson = createCloudClient({
   getModel: firebaseCloudModel,
-  // Node 21+ has a navigator without onLine; treat only an explicit false as offline.
-  isOnline: () => typeof navigator === 'undefined' || navigator.onLine !== false,
+  isOnline: () => connectivity.online(),
   maxRetries: config.cloudMaxRetries,
 });

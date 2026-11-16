@@ -28,6 +28,22 @@ export const config = {
   deviceMaxPromptChars: 16_000,
   /** Shown in the UI and used by the device model's createOptions. */
   deviceLanguages: ['en'],
+  /** Asking a question (brief Phase 3). */
+  ask: {
+    /** Rules the device model may choose from. */
+    topK: 5,
+    /**
+     * Best search score below which no model is asked (LOW_RETRIEVAL). On the
+     * test rulebook, on-topic questions scored 19.6 to 258, a misspelled one 3.2,
+     * and off-topic ones 0. Tune on a real cartridge.
+     */
+    minScore: 2,
+    /** Rules sent with a cloud question (best search matches). */
+    cloudRules: 10,
+    /** Rulebook passages sent with a cloud question, and their maximum length. */
+    cloudPassages: 4,
+    passageMaxChars: 1200,
+  },
   /** Making a cartridge (brief Phase 2). */
   compile: {
     maxRules: 120,

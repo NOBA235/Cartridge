@@ -14,6 +14,7 @@ const KIND_LABEL: Record<EgressEntry['kind'], string> = {
   'cloud-call': 'Sent to the cloud',
   declassify: 'You approved sending',
   'unexpected-cloud': 'Unexpected: device call reported cloud',
+  probe: 'Signal check (no content)',
 };
 
 function Entry({ e }: { e: EgressEntry }) {

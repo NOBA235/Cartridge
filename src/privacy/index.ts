@@ -6,6 +6,7 @@ export {
   isPrivate,
   isPublic,
   PrivacyError,
+  renderTemplate,
   reveal,
   type Classified,
   type DeclassifyScope,

@@ -47,28 +47,32 @@ const calcSchema = Schema.object({
   },
 });
 
+/** One rule in the compile output's shape. Also used for proposed rules (Phase 3 and 5). */
+export function ruleDraftSchema(params: { nullable?: boolean } = {}) {
+  return Schema.object({
+    properties: {
+      title: Schema.string(),
+      when: Schema.string(),
+      then: Schema.string(),
+      exceptions: Schema.array({ items: Schema.string() }),
+      severity: Schema.enumString({ enum: ['critical', 'major', 'minor'] }),
+      keywords: Schema.array({ items: Schema.string() }),
+      section: Schema.string(),
+      page: Schema.integer(),
+      quote: Schema.string(),
+      calc: calcSchema,
+    },
+    optionalProperties: ['page', 'calc'],
+    ...params,
+  });
+}
+
 export const COMPILE_TASK: CloudTask = {
   name: 'COMPILE',
   timeoutMs: 300_000,
   responseSchema: Schema.object({
     properties: {
-      rules: Schema.array({
-        items: Schema.object({
-          properties: {
-            title: Schema.string(),
-            when: Schema.string(),
-            then: Schema.string(),
-            exceptions: Schema.array({ items: Schema.string() }),
-            severity: Schema.enumString({ enum: ['critical', 'major', 'minor'] }),
-            keywords: Schema.array({ items: Schema.string() }),
-            section: Schema.string(),
-            page: Schema.integer(),
-            quote: Schema.string(),
-            calc: calcSchema,
-          },
-          optionalProperties: ['page', 'calc'],
-        }),
-      }),
+      rules: Schema.array({ items: ruleDraftSchema() }),
     },
   }),
 };

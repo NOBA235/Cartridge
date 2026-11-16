@@ -115,16 +115,26 @@ export function fillTemplate(
 ): Public<string> {
   assertPublic(template, 'fillTemplate(template)');
   const origins: PublicOrigin[] = [...template.origins];
+  const plain: Record<string, string> = {};
   for (const [key, v] of Object.entries(vars)) {
     assertPublic(v, `fillTemplate(${key})`);
     origins.push(...v.origins);
+    plain[key] = v.value;
   }
-  const text = template.value.replace(/\{\{(\w+)\}\}/g, (_m, key: string) => {
+  return mintPublic(renderTemplate(template.value, plain), origins);
+}
+
+/**
+ * Plain-string rendering used by fillTemplate. Exported so the UI can show
+ * the user a preview built by exactly the same code as the request. The
+ * result is a plain string: it can never be sent to the cloud.
+ */
+export function renderTemplate(template: string, vars: Readonly<Record<string, string>>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_m, key: string) => {
     const v = vars[key];
     if (v === undefined) throw new PrivacyError(`fillTemplate: no value for {{${key}}}`);
-    return v.value;
+    return v;
   });
-  return mintPublic(text, origins);
 }
 
 /** Internal: used only by declassify(). Not re-exported from the package index. */

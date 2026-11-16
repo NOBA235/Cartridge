@@ -9,6 +9,7 @@
  * - telemetry: the egress log ('What left this device'), keyed by entry id.
  */
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
+import type { QueueItem, QueueStorage } from '@/queue/offlineQueue';
 import type { EgressEntry } from '@/telemetry/egress';
 import type { SourceDoc } from './source';
 import type { Cartridge } from './types';
@@ -24,18 +25,11 @@ export interface CartridgeRecord {
   updatedAt: string;
 }
 
-/** Minimal for now; Phase 3 adds the question and routing fields. */
-export interface QueueRecord {
-  id: string;
-  createdAt: string;
-  [key: string]: unknown;
-}
-
 export interface CartridgeDB extends DBSchema {
   sources: { key: string; value: SourceDoc; indexes: { 'by-created': string } };
   cartridges: { key: string; value: CartridgeRecord; indexes: { 'by-source': string } };
   versions: { key: [string, number]; value: Cartridge; indexes: { 'by-cartridge': string } };
-  queue: { key: string; value: QueueRecord; indexes: { 'by-created': string } };
+  queue: { key: string; value: QueueItem; indexes: { 'by-created': string } };
   telemetry: { key: number; value: EgressEntry };
 }
 
@@ -118,6 +112,9 @@ export const cartridgesStore = {
     const all = await (await db()).getAll('cartridges');
     return all.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   },
+  async version(id: string, version: number): Promise<Cartridge | undefined> {
+    return (await db()).get('versions', [id, version]);
+  },
   async current(
     id: string,
   ): Promise<{ record: CartridgeRecord; cartridge: Cartridge } | undefined> {
@@ -137,6 +134,19 @@ export const cartridgesStore = {
       tx.objectStore('cartridges').delete(id),
       tx.done,
     ]);
+  },
+};
+
+/** Questions waiting for signal. Stored on this device only. */
+export const queueStore: QueueStorage = {
+  async all() {
+    return (await db()).getAllFromIndex('queue', 'by-created');
+  },
+  async put(item) {
+    await (await db()).put('queue', item);
+  },
+  async delete(id) {
+    await (await db()).delete('queue', id);
   },
 };
 

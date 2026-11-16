@@ -25,7 +25,11 @@ export interface EgressPersistence {
 /** 'memory': not attached yet. 'saved': stored on this device. 'failed': storage unavailable, memory only. */
 export type PersistenceState = 'memory' | 'saved' | 'failed';
 
-export type EgressKind = 'cloud-call' | 'declassify' | 'unexpected-cloud';
+/**
+ * 'probe': a connectivity check (an HTTP HEAD with no content) before sending
+ * questions that waited for signal. Logged so every request our code makes is visible.
+ */
+export type EgressKind = 'cloud-call' | 'declassify' | 'unexpected-cloud' | 'probe';
 export type EgressStatus = 'ok' | 'error';
 
 export interface EgressEntry {
