@@ -58,11 +58,12 @@ out of app code.
 
 ## Where Firebase AI Logic is called
 
-| What                                     | File                                                 | Mode                           |
-| ---------------------------------------- | ---------------------------------------------------- | ------------------------------ |
-| App, App Check, `getAI(GoogleAIBackend)` | [src/ai/firebase.ts](src/ai/firebase.ts)             |                                |
-| Cloud tasks (`cloudJson`)                | [src/ai/cloud.ts](src/ai/cloud.ts)                   | `InferenceMode.ONLY_IN_CLOUD`  |
-| Device rule selection (Gemini Nano)      | [src/ai/firebaseDevice.ts](src/ai/firebaseDevice.ts) | `InferenceMode.ONLY_ON_DEVICE` |
+| What                                                             | File                                                 | Mode                           |
+| ---------------------------------------------------------------- | ---------------------------------------------------- | ------------------------------ |
+| App, App Check, `getAI(GoogleAIBackend)`                         | [src/ai/firebase.ts](src/ai/firebase.ts)             |                                |
+| Cloud tasks (`cloudJson`)                                        | [src/ai/cloud.ts](src/ai/cloud.ts)                   | `InferenceMode.ONLY_IN_CLOUD`  |
+| Making a cartridge (per section, plus one repair call if needed) | [src/cartridge/compile.ts](src/cartridge/compile.ts) | through `cloudJson`            |
+| Device rule selection (Gemini Nano)                              | [src/ai/firebaseDevice.ts](src/ai/firebaseDevice.ts) | `InferenceMode.ONLY_ON_DEVICE` |
 
 The raw Chrome `LanguageModel` API is never called (ESLint blocks it).
 
