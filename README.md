@@ -5,7 +5,7 @@ Built for the #BuildHybridAI 2026 hackathon with Firebase AI Logic (cloud Gemini
 
 **Public standards go to the cloud once. Your diagram never does.**
 
-> Status: Phase 0 of 8 (scaffold and hybrid plumbing). See [docs/STATUS.md](docs/STATUS.md).
+> Status: Phase 1 of 8 (loading a rulebook and checking quotes against it). See [docs/STATUS.md](docs/STATUS.md).
 > Reference tool, not an official authority.
 
 ## Privacy

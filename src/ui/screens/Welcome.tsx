@@ -1,4 +1,7 @@
-/** Phase 0 placeholder. The full Welcome screen arrives in Phase 6. */
+import { buttonVariants } from '@/ui/primitives/button';
+import { linkHandler } from '@/ui/router';
+
+/** Placeholder. The full Welcome screen arrives in Phase 6. */
 export function Welcome() {
   return (
     <section className="mx-auto flex max-w-2xl flex-col gap-6 py-16">
@@ -27,8 +30,15 @@ export function Welcome() {
           shows in the &apos;What left this device&apos; panel.
         </li>
       </ul>
+      <a
+        href="/load"
+        onClick={linkHandler('/load')}
+        className={buttonVariants({ className: 'self-start' })}
+      >
+        Load a rulebook
+      </a>
       <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-        Work in progress. Load a rulebook, Exam Day, Ask and Report card arrive in later phases.
+        Work in progress. Exam Day, Ask and Report card arrive in later phases.
       </p>
     </section>
   );

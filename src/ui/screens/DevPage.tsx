@@ -18,9 +18,7 @@ import { RouteBadge, routeFromInferenceSource } from '@/ui/components/RouteBadge
 import { useOnline } from '@/ui/hooks/useStores';
 import { Button } from '@/ui/primitives/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/primitives/card';
-
-const inputClass =
-  'h-9 w-full rounded-md border bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50';
+import { inputClass } from '@/ui/styles';
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -115,7 +113,7 @@ export function DevPage() {
   const cloudRoute = routeFromInferenceSource(cloudResult?.source);
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
+    <section className="mx-auto flex max-w-3xl flex-col gap-6 py-6">
       <header>
         <p className="text-xs tracking-wide text-muted-foreground uppercase">
           Hidden developer page
@@ -287,6 +285,6 @@ export function DevPage() {
         onApproved={sendApproved}
         onCancel={() => setPending(null)}
       />
-    </main>
+    </section>
   );
 }

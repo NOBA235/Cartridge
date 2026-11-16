@@ -1,11 +1,11 @@
 # Cartridge status
 
-Last updated: 2026-11-14 (Phase 0).
+Last updated: 2026-11-16 (Phase 1).
 
 ## Phase checklist
 
-- [x] Phase 0: Scaffold, guardrails, hybrid plumbing (awaiting owner check of a real cloud call)
-- [ ] Phase 1: Source ingestion and quote verification
+- [x] Phase 0: Scaffold, guardrails, hybrid plumbing (one item open: a real cloud call, see below)
+- [x] Phase 1: Source ingestion and quote verification (demo source not chosen yet)
 - [ ] Phase 2: Cloud compiler and card viewer
 - [ ] Phase 3: Ask engine, router, validators, offline queue
 - [ ] Phase 4: Exam Day (needs a real device)
@@ -19,12 +19,25 @@ Last updated: 2026-11-14 (Phase 0).
 - [x] `npm test` passes (typecheck, unit tests, type tests)
 - [x] `npm run dev` starts and serves `/` and `/dev`
 - [ ] `/dev` works with the mock (code done; needs a click-through in a browser)
-- [ ] A real cloud call works with real Firebase config. Blocked on project setup. `npm run smoke:cloud`
-      (2026-11-16) reached Firebase and got back: "The Firebase AI SDK requires the Firebase AI API
-      ('firebasevertexai.googleapis.com') to be enabled". The App Check token exchange returned 403,
-      which is expected: the run used a throwaway unregistered token, because `.env.local` has no
-      `VITE_APPCHECK_DEBUG_TOKEN` yet.
+- [ ] A real cloud call works with real Firebase config. `npm run smoke:cloud` history:
+  - 2026-11-16, first run: "requires the Firebase AI API ('firebasevertexai.googleapis.com') to be enabled".
+  - 2026-11-16, after the owner enabled AI Logic (Gemini Developer API): the API is now reached and
+    answers `401 Firebase App Check token is invalid`. Expected, because the run used a throwaway
+    unregistered token. Remaining step: register a debug token and put it in
+    `VITE_APPCHECK_DEBUG_TOKEN` in `.env.local`.
 - [x] No secrets committed (scanned for API keys, private keys and debug-token UUIDs)
+
+### Phase 1 acceptance
+
+- [x] At least 15 quote-verification cases pass: 29 in `src/cartridge/verifyQuote.test.ts`
+      (hyphenation, ligatures, curly quotes, dashes, whitespace, case, accents, not-found, near misses)
+- [x] PDF text extraction with pdf.js in a Web Worker, keeping page numbers (tested with real
+      pdf.js in Node, and in headless Chrome 157 on the production build)
+- [x] Pasted text and .txt/.md files
+- [x] Warning for PDFs with almost no text
+- [x] Chunker: headings or pages, at most 30,000 characters, one paragraph of overlap, page ranges
+- [x] idb stores: sources, cartridges, versions, queue, telemetry; SHA-256 source hash
+- [ ] Demo source chosen by the owner (openly licensed or public domain)
 
 ## Versions in use
 
@@ -42,6 +55,8 @@ zod 4.6.7, motion 14.14.0, idb 8.0.4, minisearch 7.2.0, pdfjs-dist 6.5.438.
 - **Cloud models** (in `src/config.ts`, checked on the Firebase Models page 2026-11-14):
   `gemini-3.8-flash` for compile, repair, exam and tutor; `gemini-3.5-flash-lite` for answers and the dev ping.
   Both are Stable with no shutdown date.
+- **Gemini API provider: Gemini Developer API** (`GoogleAIBackend`), chosen by the owner in the
+  console on 2026-11-16. No billing needed.
 - **Cloud smoke test.** `npm run smoke:cloud` (`src/ai/cloud.smoke.ts`, Vitest `--mode smoke`) makes
   one real `DEV_PING` call through our `cloudJson` and Firebase AI Logic from Node, with App Check
   in debug mode. It is never part of `npm test`. It needs `VITE_APPCHECK_DEBUG_TOKEN` set to a
@@ -50,10 +65,9 @@ zod 4.6.7, motion 14.14.0, idb 8.0.4, minisearch 7.2.0, pdfjs-dist 6.5.438.
 - **App Check.** Dev builds always use the debug provider (`globalThis.FIREBASE_APPCHECK_DEBUG_TOKEN`,
   which is `self` in browsers as in the docs, and also exists in Node).
   Production builds never do, and need `VITE_APPCHECK_SITE_KEY` (reCAPTCHA Enterprise).
-  Added `VITE_APPCHECK_SITE_KEY` to `.env.example`. The debug token is read only inside an
-  `import.meta.env.DEV` branch and env keys are listed one by one (never spread), so Vite cannot
-  inline it into a production bundle. Verified: a production build with a canary token set
-  contains no trace of it. In dev without a site key we pass a
+  The debug token is read only inside an `import.meta.env.DEV` branch and env keys are listed one
+  by one (never spread), so Vite cannot inline it into a production bundle. Verified: a production
+  build with a canary token set contains no trace of it. In dev without a site key we pass a
   `CustomProvider` that always refuses: in debug mode the SDK exchanges the debug token and never
   asks the provider (checked in `@firebase/app-check` source).
 - **On-device schema is plain JSON schema**, not `Schema.*().toJSON()`, because `toJSON` is internal
@@ -64,10 +78,40 @@ zod 4.6.7, motion 14.14.0, idb 8.0.4, minisearch 7.2.0, pdfjs-dist 6.5.438.
   mistakes, not hostile code in the same page.
 - **Router.** `USER_REQUESTED` escalations also respect 'Ask the cloud when needed'. The privacy
   text says questions go to the cloud only while that setting is on.
-- **Egress log** is in memory for Phase 0. Phase 1 persists it in IndexedDB (telemetry store).
-  Failed cloud attempts still count their bytes, because the request may have left.
-- **Routing** for the hidden `/dev` page is a pathname check, no router library. Firebase Hosting
-  will need an SPA rewrite in Phase 7.
+- **Egress log** is persisted in IndexedDB (telemetry store) since Phase 1 and survives reloads.
+  Entries recorded before storage opens are renumbered after the stored ones. If IndexedDB fails,
+  the log stays in memory and the panel says so. Failed cloud attempts still count their bytes.
+- **Routing**: a tiny pathname router (`src/ui/router.ts`, no library) for `/`, `/load` and the
+  hidden `/dev`. Firebase Hosting will need an SPA rewrite in Phase 7.
+- **Quote normalisation** (`src/cartridge/normalize.ts`), applied to both sides: NFKC per grapheme
+  cluster (so composed and decomposed accents match), join hyphen + line break between letters,
+  drop soft hyphens and zero-width characters, lower case, expand æ/œ, unify quotes and dashes,
+  collapse whitespace and drop it next to dashes ("a - b" = "a-b"). A match must start and end at
+  word boundaries, so "5 litres" never verifies against "15 litres". One fallback: if the quote
+  has a hyphenated word, both sides are compared again without hyphens between letters, for
+  compounds the source split at a line end ("well-\nknown"). The result records which rule matched.
+- **verifyQuote returns offsets into the original source text**, so the UI can highlight the
+  passage as written, plus the page and the number of occurrences.
+- **Source text and hash.** Line endings are unified to `\n` at ingest. PDF pages are joined with a
+  blank line. `sourceHash` is SHA-256 of exactly the stored text that quotes are verified against.
+  The source id is derived from the hash, so loading the same text twice keeps one copy.
+- **Public by confirmation.** A loaded rulebook is saved only after the user names its licence and
+  ticks "This is a public document, openly licensed or in the public domain. It is not my own
+  private material." (`publicConfirmed`). Phase 2 must refuse to compile an unconfirmed source.
+- **pdf.js legacy build.** The modern `pdf.worker.mjs` in 6.5.438 calls
+  `Uint8Array.prototype.toHex()`, which Chrome has from version 140 (Baseline September 2025) and
+  Node 24 lacks. We support Chrome 139, so we use `pdfjs-dist/legacy/build/*`, which polyfills it.
+  pdf.js and its worker load on demand (separate chunks; the worker is 1.3 MB).
+- **"In a Web Worker"**: parsing and text extraction run in pdf.js's own worker (seen as a
+  `worker` target in headless Chrome). Our code only joins the text items per page.
+- **PDF text assembly** (`src/cartridge/pdf/assemble.ts`): new line on `hasEOL` or a baseline
+  move; blank line when the vertical gap is more than 1.6 line heights. Scanned warning when the
+  average is under 50 visible characters per page, or half the pages have under 10.
+- **Chunker**: markdown headings define sections when present, else PDF pages, else the whole
+  text. Sections that fit are never split. Page markers `[p. N]` are counted in the 30,000 limit.
+  Overlap is skipped if the previous paragraph is over a quarter of the limit.
+  `stripPageMarkers()` exists for Phase 2, because a model may copy a marker into a quote.
+- **File limit**: 50 MB per file (a guard against a frozen tab; Phase 7 revisits very large sources).
 
 ## Docs vs brief differences
 
@@ -88,22 +132,38 @@ zod 4.6.7, motion 14.14.0, idb 8.0.4, minisearch 7.2.0, pdfjs-dist 6.5.438.
 - Default cloud model in SDK 13.x is `gemini-3.5-flash-lite`. We never rely on the default.
 - `initializeDeviceModel()` throws only in `ONLY_ON_DEVICE` mode when Chrome reports the model
   `unavailable`. It downloads in the background when `downloadable`.
+- pdf.js 6.5: `PDFDocumentProxy` has no `destroy()`; the loading task owns it. `isEvalSupported`
+  no longer exists as an option.
+- **Flagship source licence.** The brief names a humanitarian standards handbook as the flagship
+  cartridge. The Sphere Handbook's terms (spherestandards.org/intellectual-property, checked
+  2026-11-16) say it is copyrighted and may be reproduced without fee for educational purposes with
+  acknowledgement, not for resale. That is not an open licence, so it does not meet the brief's
+  "openly licensed or public domain" rule as written. Owner decision pending.
 
 ## Known risks
 
+- **No offline app shell yet.** There is no service worker, so a reload with the network blocked
+  fails. Loading a rulebook works offline only once the page and the pdf.js chunks are loaded.
+  "Works with the network blocked" needs a service worker; not in the dependency list.
 - `npm audit` reports 4 high-severity advisories in `@grpc/grpc-js`, pulled in by
   `@firebase/firestore` inside the `firebase` package. We do not import Firestore and grpc is
   Node-only, so it is not in the browser bundle. The suggested fix downgrades firebase to 9.x, which
   we will not do.
 - npm skipped postinstall scripts for `@firebase/util` and `protobufjs` (npm's allowScripts policy).
   The app builds and tests pass without them.
-- The main bundle is about 596 KB (188 KB gzip), mostly Firebase. Code-splitting is a Phase 6/7 task.
+- The main bundle is about 619 KB (195 KB gzip), mostly Firebase. Code-splitting is a Phase 6/7 task.
 - Inter is listed first in the font stack but not bundled. Offline it falls back to the system font.
 - The `chromeAdapter` check depends on an SDK internal. It fails closed, but a future SDK could
   make the device look unavailable until we update it.
 - Not yet verified on a real device: download progress, `on_device` reporting, latency.
+- PDF extraction is tested on generated PDFs only. Real PDFs with two columns, tables, CID fonts
+  (no cMaps bundled) or headers and footers on every page may extract in an odd order; quotes from
+  such passages may fail to verify and be dropped in Phase 2.
+- The IndexedDB stores have no unit tests (Node has no IndexedDB and `fake-indexeddb` is not in the
+  dependency list). Save, list and reload were exercised in headless Chrome; delete was not.
 
 ## Open questions for the owner
 
+- **Demo source** (Phase 1): which openly licensed or public-domain document?
 - Ask screen escalation (Phase 3): should 'Ask the cloud when needed' count as the user's standing
   approval for sending a question, or should each escalation show the preview dialog first?

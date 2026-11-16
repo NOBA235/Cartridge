@@ -1,9 +1,13 @@
 import { useSyncExternalStore } from 'react';
 import { settings, type Settings } from '@/settings';
-import { egressLog, type EgressEntry } from '@/telemetry/egress';
+import { egressLog, type EgressEntry, type PersistenceState } from '@/telemetry/egress';
 
 export function useEgressLog(): readonly EgressEntry[] {
   return useSyncExternalStore(egressLog.subscribe, egressLog.entries);
+}
+
+export function useEgressPersistence(): PersistenceState {
+  return useSyncExternalStore(egressLog.persistence.subscribe, egressLog.persistence.get);
 }
 
 export function useSettings(): Settings {

@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useRef } from 'react';
 import { Button } from '@/ui/primitives/button';
 import type { EgressEntry } from '@/telemetry/egress';
-import { useEgressLog } from '@/ui/hooks/useStores';
+import { useEgressLog, useEgressPersistence } from '@/ui/hooks/useStores';
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -63,6 +63,7 @@ function Entry({ e }: { e: EgressEntry }) {
 
 export function EgressPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const entries = useEgressLog();
+  const persistence = useEgressPersistence();
   const total = entries.reduce((s, e) => s + e.bytesSent, 0);
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -95,7 +96,7 @@ export function EgressPanel({ open, onClose }: { open: boolean; onClose: () => v
               </h2>
               <p className="text-xs text-muted-foreground">
                 {entries.filter((e) => e.kind === 'cloud-call').length} cloud calls,{' '}
-                {formatBytes(total)} sent this session
+                {formatBytes(total)} sent in total
               </p>
             </div>
             <Button ref={closeRef} variant="ghost" size="sm" onClick={onClose}>
@@ -114,8 +115,12 @@ export function EgressPanel({ open, onClose }: { open: boolean; onClose: () => v
             )}
           </div>
           <footer className="border-t p-4 text-xs text-muted-foreground">
-            This log is kept in memory for this session. Calls to the on-device model are not listed
-            because nothing leaves the device.
+            {persistence === 'saved' &&
+              'This log is stored on this device and kept after a reload. '}
+            {persistence === 'failed' &&
+              'This log could not be stored on this device, so it only covers this session. '}
+            {persistence === 'memory' && 'Loading earlier entries… '}
+            Calls to the on-device model are not listed because nothing leaves the device.
           </footer>
         </motion.aside>
       )}
