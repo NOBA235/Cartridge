@@ -238,13 +238,24 @@ export function CartridgeView() {
               {cartridge.sourceLicence && ` Rulebook licence: ${cartridge.sourceLicence}.`}
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => downloadText(exportFileName(cartridge), exportCartridgeJson(cartridge))}
-          >
-            Export JSON
-          </Button>
+          <div className="flex gap-2">
+            <a
+              href={href('/ask', { id: cartridge.id })}
+              onClick={linkHandler('/ask', { id: cartridge.id })}
+              className={buttonVariants({ size: 'sm' })}
+            >
+              Ask this cartridge
+            </a>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                downloadText(exportFileName(cartridge), exportCartridgeJson(cartridge))
+              }
+            >
+              Export JSON
+            </Button>
+          </div>
         </div>
         {!source && (
           <p

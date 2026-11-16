@@ -21,6 +21,10 @@ export interface DeclassifyRequest {
   destination: string;
   /** The full request as it will be sent, if our own public text wraps the user's text. */
   fullRequest?: string;
+  /** Why this is being asked, in plain words. */
+  context?: string;
+  /** Label of the approve button. Defaults to 'Approve and send'. */
+  approveLabel?: string;
 }
 
 export function DeclassifyDialog({
@@ -66,10 +70,13 @@ export function DeclassifyDialog({
             <h2 id="declassify-title" className="text-lg font-semibold">
               Send this to the cloud?
             </h2>
+            {request.context && <p className="mt-1 text-sm">{request.context}</p>}
             <p className="mt-1 text-sm text-muted-foreground">
               This text is yours and has stayed on this device so far. If you approve, exactly the
-              text below is sent to {request.destination}, and the send is listed in 'What left this
-              device'.
+              text below is sent to {request.destination}
+              {request.fullRequest !== undefined &&
+                ', together with our instructions and public rulebook text (shown in full below)'}
+              . The send is listed in &lsquo;What left this device&rsquo;.
             </p>
           </div>
           <div>
@@ -97,7 +104,7 @@ export function DeclassifyDialog({
             <Button variant="outline" onClick={onCancel} autoFocus>
               Keep it on this device
             </Button>
-            <Button onClick={approve}>Approve and send</Button>
+            <Button onClick={approve}>{request.approveLabel ?? 'Approve and send'}</Button>
           </div>
         </div>
       )}

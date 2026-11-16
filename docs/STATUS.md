@@ -1,13 +1,13 @@
 # Cartridge status
 
-Last updated: 2026-11-16 (Phase 2).
+Last updated: 2026-11-16 (Phase 3).
 
 ## Phase checklist
 
 - [x] Phase 0: Scaffold, guardrails, hybrid plumbing (one item open: a real cloud call, see below)
 - [x] Phase 1: Source ingestion and quote verification
 - [x] Phase 2: Cloud compiler and card viewer (one item open: a real compile, see below)
-- [ ] Phase 3: Ask engine, router, validators, offline queue
+- [x] Phase 3: Ask engine, router, validators, offline queue (real device and real cloud not yet run)
 - [ ] Phase 4: Exam Day (needs a real device)
 - [ ] Phase 5: Versions and proposed rules
 - [ ] Phase 6: Product polish and demo mode
@@ -51,6 +51,15 @@ Last updated: 2026-11-16 (Phase 2).
 - [x] Compile logic tested with a fake cloud (`compile.test.ts`, 24 tests; fake lives in the test only)
 - [x] Progress UI ('Reading section N of M', 'Verified X of Y quotes'), left-out rules with reasons
 - [x] Card viewer: search, severity chips, quote highlighted in source context, JSON export/import
+
+### Phase 3 acceptance
+
+- [x] 20 scripted questions give the expected routes (`ask.test.ts`), using the test-only stand-in
+      device (results labelled 'mock'; this checks routing and validation, not Gemini Nano)
+- [x] Offline queue test (`offlineQueue.test.ts`, 8 tests)
+- [x] Validator and calc tests (`ask.test.ts`, `calc.test.ts`)
+- [ ] A question answered by real Gemini Nano on a real device (needs desktop Chrome with Gemini Nano)
+- [ ] A real cloud answer (needs the App Check debug token, same as Phase 0)
 
 ## Versions in use
 
@@ -165,6 +174,46 @@ zod 4.6.7, motion 14.14.0, idb 8.0.4, minisearch 7.2.0, pdfjs-dist 6.5.438.
     skipped. Going offline stops the run; nothing is saved.
   - The job runs outside the screen (`compileJob.ts`), so progress survives navigation. The
     finished cartridge is saved as version 1 (cartridges + versions stores) before 'done' shows.
+- **Asking (Phase 3)** (`src/cartridge/ask.ts`):
+  - **Every cloud question needs the user's approval of a preview** (DeclassifyDialog), also with
+    'Ask the cloud when needed' on. Questions are `Private`, and the brief's rule is that
+    `declassify` needs an explicit approval with a preview. The owner can relax this later.
+  - Retrieval: MiniSearch per cartridge version over title, when, keywords, then; boost keywords x3,
+    title x2; prefix for terms of 4+ characters, fuzzy 0.2 for 5+; question words dropped. Top 5.
+    Threshold `config.ask.minScore = 2`, picked from the test rulebook (on-topic 19.6 to 258, one
+    misspelled 3.2, off-topic 0). Must be tuned on a real cartridge.
+  - Order: retrieval first (LOW_RETRIEVAL calls no model), then the device, then validators
+    (rule must be a candidate; its quote must verify against the rulebook on this device; without
+    the rulebook, VALIDATION_FAILED).
+  - Answers are built from the rule; arithmetic in code (`computeCalc`, floating-point noise
+    removed before rounding). **A quantity is used only if that number is written in the
+    question**, whether it came from the device or the cloud; otherwise the answer asks for it.
+  - **Cloud answer prompt: two added return fields**, `quote` (the exact sentence relied on) and
+    `quantity`. Without `quote`, the brief's rule "verified only if it cites a quote that verifies"
+    could not be checked. If the cloud cites a rule, the answer is written from that rule. If the
+    cloud says not covered, its own text is not shown.
+  - The cloud gets the 10 best-matching rules and 4 rulebook passages (paragraphs, at most 1,200
+    characters each), all public. The preview is rendered by the same function as the prompt
+    (`renderTemplate`), and the prompt is refused if it differs from what was approved.
+  - Added answer status `unanswered` (brief lists verified, escalated, queued): used when nothing
+    was sent because the cloud is off or the user kept the question on this device.
+  - Proposed rules from the cloud are kept on the answer only if their quote verifies; reviewing
+    them is Phase 5.
+- **Offline queue** (`src/queue/offlineQueue.ts`): items persisted in IndexedDB. The approval
+  lives in memory only, so after a reload an item shows "Approve again to send it": approvals are
+  never re-created from storage. Draining runs when the connection comes back (browser 'online'
+  event or the simulated switch going off) after a real probe; failed items stay with their error.
+- **Signal probe:** one `HEAD https://www.gstatic.com/generate_204` (`no-cors`, `no-store`, no
+  content), logged in the egress log as 'Signal check (no content)'. The Firebase AI Logic host
+  answers 400 to a bare request, which Chrome logged as a console error, so we use Google's
+  connectivity-check URL instead.
+- **'Simulated no signal'** blocks every cloud call made through `cloudJson` (also making a
+  cartridge) and the probe. It resets on reload.
+- **Gemini Nano per cartridge version** (`src/ai/deviceSessions.ts`). 'Prepare this device' must be
+  pressed the first time; after one success, later visits prepare automatically (no download is
+  needed then, so no gesture is needed; if it fails, the button comes back).
+- **Receipt counters** in localStorage: on this device, from the cloud, waited for signal,
+  unanswered. Bytes for questions come from the egress log (ANSWER calls).
 - **Data model addition:** `Cartridge.sourceName` and `Cartridge.sourceLicence` (optional), so the
   rulebook's licence travels with exported quotes. `CartridgeSchema` also rejects duplicate rule IDs.
 - **Import** always gives the cartridge a new id (never overwrites one on this device) and adds a

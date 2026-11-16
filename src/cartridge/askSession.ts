@@ -52,6 +52,7 @@ export async function loadAskContext(
 
 export interface HistoryEntry {
   id: string;
+  cartridgeId: string;
   answer: Answer;
 }
 
@@ -61,17 +62,17 @@ let nextId = 1;
 export const askHistory = {
   subscribe: history.subscribe,
   get: history.get,
-  add(answer: Answer): void {
+  add(answer: Answer, cartridgeId: string): void {
     receipt.count(answer);
-    history.set((h) => [{ id: `a${nextId++}`, answer }, ...h]);
+    history.set((h) => [{ id: `a${nextId++}`, cartridgeId, answer }, ...h]);
   },
   /** A queued question was answered: replace its 'Waiting for signal' entry. */
-  resolveQueued(queueId: string, answer: Answer): void {
+  resolveQueued(queueId: string, answer: Answer, cartridgeId: string): void {
     receipt.count(answer);
     history.set((h) =>
       h.some((e) => e.answer.queueId === queueId)
         ? h.map((e) => (e.answer.queueId === queueId ? { ...e, answer } : e))
-        : [{ id: `a${nextId++}`, answer }, ...h],
+        : [{ id: `a${nextId++}`, cartridgeId, answer }, ...h],
     );
   },
 };
@@ -89,7 +90,7 @@ export const offlineQueue = createOfflineQueue<Answer>({
   probe: () => connectivity.probe(),
   online: () => connectivity.online(),
   send: sendQueued,
-  onAnswer: (answer, item) => askHistory.resolveQueued(item.id, answer),
+  onAnswer: (answer, item) => askHistory.resolveQueued(item.id, answer, item.cartridgeId),
 });
 
 let started = false;

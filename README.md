@@ -5,7 +5,7 @@ Built for the #BuildHybridAI 2026 hackathon with Firebase AI Logic (cloud Gemini
 
 **Public standards go to the cloud once. Your diagram never does.**
 
-> Status: Phase 2 of 8 (making a cartridge in the cloud and viewing its cards). See [docs/STATUS.md](docs/STATUS.md).
+> Status: Phase 3 of 8 (asking questions on this device, with approved cloud escalation and an offline queue). See [docs/STATUS.md](docs/STATUS.md).
 > Reference tool, not an official authority.
 
 ## Privacy

@@ -4,12 +4,14 @@
  * - 'Simulated no signal': a switch that blocks every cloud call made through
  *   our code, for showing offline behaviour. Always labelled 'Simulated' in the UI.
  * - probe(): a real check before the offline queue is sent. One HEAD request
- *   with no content to the Firebase AI Logic host, logged in the egress log.
+ *   with no content to Google's connectivity-check URL (answers 204, no
+ *   body), logged in the egress log. The Firebase AI Logic host itself answers
+ *   400 to a bare request, which Chrome reports as a console error.
  */
 import { createStore } from '@/lib/store';
 import { egressLog } from '@/telemetry/egress';
 
-export const PROBE_URL = 'https://firebasevertexai.googleapis.com/';
+export const PROBE_URL = 'https://www.gstatic.com/generate_204';
 
 interface State {
   browserOnline: boolean;
