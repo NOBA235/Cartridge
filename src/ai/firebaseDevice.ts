@@ -107,7 +107,7 @@ async function initialise(
   onProgress: (fraction: number) => void,
 ): Promise<DeviceStatus> {
   if (!hasOnDeviceAdapter(model)) {
-    return { state: 'unavailable', kind: 'firebase', reason: UNAVAILABLE_REASON };
+    return { state: 'unavailable', kind: 'firebase', reason: UNAVAILABLE_REASON, permanent: true };
   }
   await model.initializeDeviceModel((p) => onProgress(Math.max(0, Math.min(1, p))));
   onProgress(1);
@@ -130,8 +130,21 @@ export async function prepareThisDevice(
     });
     return await initialise(model, onProgress);
   } catch (e) {
-    return { state: 'unavailable', kind: 'firebase', reason: (e as Error).message };
+    return unavailableFrom(e, 'firebase');
   }
+}
+
+/**
+ * The SDK throws AIError 'api-not-enabled' when Chrome reports the model
+ * 'unavailable' (this device cannot run it). Anything else, such as a failed
+ * download, may work on another try.
+ */
+function unavailableFrom(e: unknown, kind: DeviceModel['kind']): DeviceStatus {
+  const reason = e instanceof Error ? e.message : String(e);
+  const permanent = (e as { code?: unknown } | null)?.code === 'api-not-enabled';
+  return permanent
+    ? { state: 'unavailable', kind, reason: `${UNAVAILABLE_REASON} (${reason})`, permanent }
+    : { state: 'unavailable', kind, reason };
 }
 
 export class FirebaseDeviceModel implements DeviceModel {
@@ -165,7 +178,7 @@ export class FirebaseDeviceModel implements DeviceModel {
       return status;
     } catch (e) {
       this.ready = false;
-      return { state: 'unavailable', kind: this.kind, reason: (e as Error).message };
+      return unavailableFrom(e, this.kind);
     }
   }
 

@@ -46,7 +46,7 @@ export function DevicePanel({ cartridge }: { cartridge: Cartridge }) {
           Gemini Nano is not available: {s.reason} Questions go to the cloud (after you approve).
         </p>
       )}
-      {(s.state === 'idle' || s.state === 'unavailable') && (
+      {(s.state === 'idle' || (s.state === 'unavailable' && s.canRetry)) && (
         <Button
           variant="outline"
           size="sm"

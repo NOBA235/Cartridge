@@ -99,6 +99,17 @@ describe('FirebaseDeviceModel', () => {
       state: 'unavailable',
       reason: 'Local LanguageModel API not available',
     });
+    expect(status).not.toHaveProperty('permanent');
+  });
+
+  it('marks it permanent when Chrome reports the model unavailable on this device', async () => {
+    const initError = Object.assign(new Error('Local LanguageModel API not available'), {
+      code: 'api-not-enabled',
+    });
+    const status = await new FirebaseDeviceModel(IDS, fake({ initError }).factory).prepare(
+      () => {},
+    );
+    expect(status).toMatchObject({ state: 'unavailable', permanent: true });
   });
 
   it('reports progress and ends at 1', async () => {

@@ -37,6 +37,24 @@ function DeviceChip({ cartridge }: { cartridge: Cartridge }) {
       </span>
     );
   }
+  if (s.state === 'unavailable' && s.canRetry) {
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-8 rounded-full border-warning/50 text-warning"
+        title={`Gemini Nano is not ready: ${s.reason}`}
+        onClick={() => void deviceSessions.prepare(cartridge)}
+      >
+        Cloud mode: try again
+        <span className="sr-only">
+          {' '}
+          to prepare Gemini Nano. Until it is ready, questions need the cloud, after you approve.{' '}
+          {s.reason}
+        </span>
+      </Button>
+    );
+  }
   if (s.state === 'unavailable') {
     return (
       <span

@@ -1,8 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FIELD_CARTRIDGE } from '@/testing/fieldFixture';
 import { MockDeviceModel } from '@/testing/mockDevice';
-import type { DeviceModel } from './deviceModel';
-import { createDeviceSessions } from './deviceSessions';
+import type { DeviceModel, DeviceStatus } from './deviceModel';
+import { createDeviceSessions, STALLED_REASON } from './deviceSessions';
 
 describe('device sessions', () => {
   it('creates one model per cartridge version with that version’s rule IDs', async () => {
@@ -36,9 +36,84 @@ describe('device sessions', () => {
     expect(seen).toEqual([
       { state: 'preparing', progress: 0 },
       { state: 'preparing', progress: 0.4 },
-      { state: 'unavailable', reason: 'No Gemini Nano here' },
+      { state: 'unavailable', reason: 'No Gemini Nano here', canRetry: true },
     ]);
     expect(s.handle(FIELD_CARTRIDGE)?.ready).toBe(false);
+  });
+
+  it('offers no retry when the device can never run Gemini Nano', async () => {
+    const s = createDeviceSessions(() => ({
+      kind: 'firebase',
+      prepare: async () => ({
+        state: 'unavailable',
+        kind: 'firebase',
+        reason: 'Not supported',
+        permanent: true,
+      }),
+      selectRule: vi.fn(),
+    }));
+    expect(await s.prepare(FIELD_CARTRIDGE)).toEqual({
+      state: 'unavailable',
+      reason: 'Not supported',
+      canRetry: false,
+    });
+  });
+
+  it('turns a thrown error into unavailable instead of preparing forever', async () => {
+    const throwing = createDeviceSessions(() => {
+      throw new Error('No rules');
+    });
+    expect(await throwing.prepare(FIELD_CARTRIDGE)).toMatchObject({
+      state: 'unavailable',
+      reason: 'No rules',
+    });
+    const rejecting = createDeviceSessions(() => ({
+      kind: 'firebase',
+      prepare: () => Promise.reject(new Error('Download interrupted')),
+      selectRule: vi.fn(),
+    }));
+    expect(await rejecting.prepare(FIELD_CARTRIDGE)).toEqual({
+      state: 'unavailable',
+      reason: 'Download interrupted',
+      canRetry: true,
+    });
+  });
+
+  describe('a download that stops moving', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it('is shown as stopped, may be retried, and still becomes ready if it finishes', async () => {
+      let report: (p: number) => void = () => {};
+      let finish: () => void = () => {};
+      const prepare = vi.fn(
+        (onProgress: (p: number) => void) =>
+          new Promise<DeviceStatus>((resolve) => {
+            report = onProgress;
+            finish = () => resolve({ state: 'ready', kind: 'firebase' });
+          }),
+      );
+      const s = createDeviceSessions(() => ({ kind: 'firebase', prepare, selectRule: vi.fn() }), {
+        stallMs: 1000,
+      });
+      const first = s.prepare(FIELD_CARTRIDGE);
+      await vi.advanceTimersByTimeAsync(600);
+      report(0.3);
+      await vi.advanceTimersByTimeAsync(600);
+      expect(s.state(FIELD_CARTRIDGE)).toEqual({ state: 'preparing', progress: 0.3 });
+
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(await first).toEqual({ state: 'unavailable', reason: STALLED_REASON, canRetry: true });
+
+      // Try again: a new request, not the stuck one.
+      void s.prepare(FIELD_CARTRIDGE);
+      expect(prepare).toHaveBeenCalledTimes(2);
+      report(0.5);
+      expect(s.state(FIELD_CARTRIDGE)).toEqual({ state: 'preparing', progress: 0.5 });
+      finish();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(s.state(FIELD_CARTRIDGE)).toEqual({ state: 'ready' });
+    });
   });
 
   it('prepares only once at a time', async () => {

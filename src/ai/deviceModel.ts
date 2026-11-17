@@ -22,7 +22,13 @@ export interface DeviceSelection {
 
 export type DeviceStatus =
   | { state: 'ready'; kind: DeviceModel['kind'] }
-  | { state: 'unavailable'; kind: DeviceModel['kind']; reason: string };
+  | {
+      state: 'unavailable';
+      kind: DeviceModel['kind'];
+      reason: string;
+      /** True when trying again cannot help (no on-device model in this browser or on this hardware). */
+      permanent?: boolean;
+    };
 
 export interface SelectRuleInput {
   /** The user's question (Private) or an exam question (Public). Never leaves the device here. */
