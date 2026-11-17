@@ -11,6 +11,7 @@ import { cartridgesStore, sourcesStore, type CartridgeRecord } from '@/cartridge
 import type { Cartridge, Rule, Severity } from '@/cartridge/types';
 import { prepareSource, verifyQuote, type PreparedSource } from '@/cartridge/verifyQuote';
 import { cn } from '@/lib/utils';
+import { ReadyBadge } from '@/ui/components/ExamReportCard';
 import { SEVERITIES, SeverityChip } from '@/ui/components/SeverityChip';
 import { SourceContext } from '@/ui/components/SourceContext';
 import { downloadText } from '@/ui/download';
@@ -237,8 +238,30 @@ export function CartridgeView() {
               Version {cartridge.version}, {cartridge.rules.length} rules.
               {cartridge.sourceLicence && ` Rulebook licence: ${cartridge.sourceLicence}.`}
             </p>
+            {cartridge.report ? (
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                <ReadyBadge report={cartridge.report} />
+                <span className="text-muted-foreground">
+                  {cartridge.report.measuredOn === 'device'
+                    ? 'Tested on this device'
+                    : 'Not measured on a real device'}
+                  {cartridge.report.counts &&
+                    `: passed ${cartridge.report.counts.heldOut.passed} of ${cartridge.report.counts.heldOut.total} held-out questions`}
+                  .
+                </span>
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-muted-foreground">Not tested on this device yet.</p>
+            )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={href('/exam', { id: cartridge.id })}
+              onClick={linkHandler('/exam', { id: cartridge.id })}
+              className={buttonVariants({ size: 'sm', variant: 'outline' })}
+            >
+              Exam Day
+            </a>
             <a
               href={href('/ask', { id: cartridge.id })}
               onClick={linkHandler('/ask', { id: cartridge.id })}

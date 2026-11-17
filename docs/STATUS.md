@@ -1,6 +1,6 @@
 # Cartridge status
 
-Last updated: 2026-11-16 (Phase 3).
+Last updated: 2026-11-16 (Phase 4).
 
 ## Phase checklist
 
@@ -8,7 +8,7 @@ Last updated: 2026-11-16 (Phase 3).
 - [x] Phase 1: Source ingestion and quote verification
 - [x] Phase 2: Cloud compiler and card viewer (one item open: a real compile, see below)
 - [x] Phase 3: Ask engine, router, validators, offline queue (real device and real cloud not yet run)
-- [ ] Phase 4: Exam Day (needs a real device)
+- [x] Phase 4: Exam Day, built and tested with the stand-in (the owner's real-device run is still to do)
 - [ ] Phase 5: Versions and proposed rules
 - [ ] Phase 6: Product polish and demo mode
 - [ ] Phase 7: Hardening and submission readiness
@@ -60,6 +60,16 @@ Last updated: 2026-11-16 (Phase 3).
 - [x] Validator and calc tests (`ask.test.ts`, `calc.test.ts`)
 - [ ] A question answered by real Gemini Nano on a real device (needs desktop Chrome with Gemini Nano)
 - [ ] A real cloud answer (needs the App Check debug token, same as Phase 0)
+
+### Phase 4 acceptance
+
+- [x] The loop runs end to end with the stand-in (`examDay.test.ts`): write, practice, tutor,
+      retake, held-out once, report with `measuredOn: 'mock'`. The tutor never sees held-out
+      (checked on every tutor prompt, and enforced in `askTutor`). Mutation checks: sending held-out
+      to the tutor, and removing the undo of a worse round, both make tests fail.
+- [ ] **The owner runs Exam Day once on a real device; the report must show measuredOn 'device'.**
+      Needs Chrome with Gemini Nano and the App Check debug token (the exam and tutor use the cloud).
+- [ ] Prompts and thresholds tuned after that first real run.
 
 ## Versions in use
 
@@ -212,6 +222,49 @@ zod 4.6.7, motion 14.14.0, idb 8.0.4, minisearch 7.2.0, pdfjs-dist 6.5.438.
 - **Gemini Nano per cartridge version** (`src/ai/deviceSessions.ts`). 'Prepare this device' must be
   pressed the first time; after one success, later visits prepare automatically (no download is
   needed then, so no gesture is needed; if it fails, the button comes back).
+- **Exam Day (Phase 4)** (`src/exam/`):
+  - **Writing the exam:** 40 questions by default, 20% out of scope (`config.exam`). In-scope
+    questions cover critical rules first, then the others spread across the rulebook. A cartridge
+    with fewer than 32 rules lists rules more than once (at most 4 times each); out of scope stays
+    about 20%. Under 10 planned or usable questions, the exam is refused. Quotes are not sent.
+    **EXAM_PROMPT additions:** a `{"questions": [...]}` wrapper (the response schema needs an
+    object root) and one sentence asking for different wording when a rule is listed twice. The
+    response schema limits `expectedRuleId` to the cartridge's IDs plus NONE.
+  - Code drops questions that name a rule ID, contain the expected rule's quote, expect an unknown
+    rule, repeat another question, or are malformed; the reasons are kept on the exam.
+  - **Split:** 70/30, stratified (critical, standard, out of scope), seeded by the cartridge id, so
+    it never changes. Each group of 2 or more gives at least one held-out question.
+  - **The exam is saved** (new `exams` store, IndexedDB version 2; checked in Chrome that a
+    version 1 database upgrades and keeps its data) and reused, so held-out stays the same between
+    runs. Questions for rules that no longer exist are dropped. 'Write a new exam' is a checkbox.
+  - **Grading** runs the Ask pipeline (`answerOnDevice`) and never the cloud. predicted is NONE when
+    no rule was close or the device said NONE, ERROR on device failure, else the chosen rule. An
+    in-scope question passes only if the right rule was chosen and its answer passed the checks
+    (candidate, verified quote), because only then would Ask show it. Five device errors in a row
+    stop the run.
+  - **Tutor:** up to 2 rounds on practice failures. **Only the rules involved are sent** (expected,
+    chosen and the candidates shown), not all rules, because only those can change the result.
+    TUTOR_PROMPT gets the same JSON wrapper line. Code applies only title, when, keywords, notWhen
+    (zod strips every other key; the response schema has no other fields). Rejected: unknown rules,
+    over-long fields (title 120, others 400 characters), and any field or keyword that copies
+    exam question text (any run of 6 words, or a whole question of 3 to 5 words). Keywords are
+    lower-cased, de-duplicated and capped at 10. **A round that lowers the practice score is
+    undone** (shown as 'Undone' in the changes list), beyond the brief.
+  - **Report** (`ExamReport`, extended with optional fields: counts, thresholds, tutorRounds,
+    medianLatencyMs, notes, overridden): passRate = practice after the tutor; heldOutPassRate,
+    criticalPassRate and outOfScopeRate = held-out. Ready if critical >= 0.9 and out of scope
+    > = 0.8 on held-out (configurable). With no critical or no out-of-scope question in held-out,
+    > not ready (unless the cartridge has no critical rules), with a note saying so. A note warns
+    > when held-out is more than 15 points below practice.
+  - **Override:** 'Mark ready anyway…' shows a warning and stores `overridden.at`; `ready` stays
+    false and the badge reads 'Marked ready by you, below the bar'.
+  - **Saving:** if tutor changes were kept, a new version N+1 (parent N) with the tuned rules, a
+    changelog line and the report. Otherwise the report is attached to version N.
+  - The UI says 'test pass rate'. A report produced with the test stand-in shows 'Not measured on
+    a real device' (checked in Chrome with an imported report). In the app the device is always
+    Gemini Nano, so app reports say 'Tested on this device'.
+  - Small held-out sets are noisy: 40 questions give 12 held-out, of which about 4 critical and 2
+    out of scope for the test rulebook. One wrong critical answer drops it to 75%.
 - **Receipt counters** in localStorage: on this device, from the cloud, waited for signal,
   unanswered. Bytes for questions come from the egress log (ANSWER calls).
 - **Data model addition:** `Cartridge.sourceName` and `Cartridge.sourceLicence` (optional), so the

@@ -8,12 +8,14 @@ import { linkHandler, usePath, type AppPath } from '@/ui/router';
 import { Ask } from '@/ui/screens/Ask';
 import { CartridgeView } from '@/ui/screens/CartridgeView';
 import { DevPage } from '@/ui/screens/DevPage';
+import { ExamDay } from '@/ui/screens/ExamDay';
 import { LoadRulebook } from '@/ui/screens/LoadRulebook';
 import { Welcome } from '@/ui/screens/Welcome';
 
 const NAV: ReadonlyArray<{ path: AppPath; label: string }> = [
   { path: '/', label: 'Welcome' },
   { path: '/load', label: 'Load a rulebook' },
+  { path: '/exam', label: 'Exam Day' },
   { path: '/ask', label: 'Ask' },
 ];
 
@@ -22,6 +24,7 @@ function Screen({ path }: { path: AppPath }) {
   if (path === '/load') return <LoadRulebook />;
   if (path === '/cartridge') return <CartridgeView />;
   if (path === '/ask') return <Ask />;
+  if (path === '/exam') return <ExamDay />;
   return <Welcome />;
 }
 

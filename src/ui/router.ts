@@ -1,9 +1,9 @@
 /** Tiny pathname router: no dependency, works with the browser's back button. */
 import { useMemo, useSyncExternalStore, type MouseEvent } from 'react';
 
-export type AppPath = '/' | '/load' | '/cartridge' | '/ask' | '/dev';
+export type AppPath = '/' | '/load' | '/cartridge' | '/exam' | '/ask' | '/dev';
 
-const KNOWN: readonly AppPath[] = ['/', '/load', '/cartridge', '/ask', '/dev'];
+const KNOWN: readonly AppPath[] = ['/', '/load', '/cartridge', '/exam', '/ask', '/dev'];
 
 function toPath(pathname: string): AppPath {
   const p = pathname.replace(/\/+$/, '') || '/';

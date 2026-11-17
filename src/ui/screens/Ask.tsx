@@ -23,7 +23,6 @@ import {
   offlineQueue,
   type LoadedCartridge,
 } from '@/cartridge/askSession';
-import { cartridgesStore, type CartridgeRecord } from '@/cartridge/store';
 import { config } from '@/config';
 import { asPrivate, type Public } from '@/privacy';
 import { connectivity } from '@/queue/connectivity';
@@ -34,6 +33,7 @@ import { CloudSetting } from '@/ui/components/CloudSetting';
 import { DeclassifyDialog, type DeclassifyRequest } from '@/ui/components/DeclassifyDialog';
 import { DevicePanel, useDeviceState } from '@/ui/components/DevicePanel';
 import { NoSignalSwitch, useConnectivity } from '@/ui/components/NoSignalSwitch';
+import { useCartridges } from '@/ui/hooks/useCartridges';
 import { useEgressLog, useSettings } from '@/ui/hooks/useStores';
 import { Button, buttonVariants } from '@/ui/primitives/button';
 import { linkHandler, navigate, useLocation } from '@/ui/router';
@@ -107,26 +107,6 @@ function WaitingList({ onApprove }: { onApprove: (item: QueueView) => void }) {
       </ul>
     </section>
   );
-}
-
-function useCartridges() {
-  const [records, setRecords] = useState<CartridgeRecord[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    let live = true;
-    cartridgesStore.list().then(
-      (l) => live && setRecords(l),
-      (e: unknown) => {
-        if (!live) return;
-        setRecords([]);
-        setError(e instanceof Error ? e.message : String(e));
-      },
-    );
-    return () => {
-      live = false;
-    };
-  }, []);
-  return { records, error };
 }
 
 function AskWith({ loaded }: { loaded: LoadedCartridge }) {
