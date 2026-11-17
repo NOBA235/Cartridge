@@ -39,6 +39,7 @@ cartridge**, press **Prepare this device** in the header to download Gemini Nano
 | Approve a suggested rule: check           | Cloud writes 3 questions, this device answers   | The new public rule (not sent if it uses words from your question that the rulebook lacks); your question stays on this device |
 | Signal check before sending queued items  | Google connectivity URL                         | An empty `HEAD` request                                                                                                        |
 | Developer page (`/dev`) test buttons      | Cloud                                           | A fixed test prompt                                                                                                            |
+| Opening the app                           | The app's own host, then this device            | Requests for the app's own files; after the first visit they are saved on the device                                           |
 
 Every request that leaves the device is listed, with its exact content, in the **What left this
 device** panel.
@@ -67,6 +68,36 @@ device** panel.
 5. **Versions.** When the cloud answers a question the cartridge missed, it may suggest a rule.
    The suggestion is kept only if its quote is in the rulebook. You review the change, approve it
    as a new version (nothing is ever overwritten), and the device re-runs the affected questions.
+
+## Without a signal
+
+After one visit with a signal, the production build works with the network off:
+
+- A service worker ([src/offline/serviceWorker.ts](src/offline/serviceWorker.ts)), generated at
+  build time with the exact list of built files, saves the app on the device. The footer says
+  **Saved on this device** when that is done. It never touches requests to other origins, so
+  every call to Firebase goes to the network and shows in the egress log as before.
+- Rulebooks, cartridges, versions, exams and the egress log are in IndexedDB. The app asks the
+  browser to keep them when it clears space (the browser decides).
+- Without a signal you can open every screen, read the cards with their quotes checked against
+  the rulebook, load a new rulebook (PDF reading runs on the device), and ask questions that
+  Gemini Nano answers. A question the cartridge cannot answer waits in **Waiting for signal**
+  after you approve it, and is sent when the signal returns.
+- Making a cartridge and writing a new exam need the cloud, so those buttons are off without a
+  signal. A saved exam can run again on the device; the tutor, which is in the cloud, is skipped.
+
+When something goes wrong, the app says what happened and keeps your work:
+
+| Situation                               | What happens                                                                                    |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Gemini Nano unavailable on this device  | The header shows **Cloud mode**; questions need the cloud, after you approve each one           |
+| Gemini Nano download stops              | After 2 minutes without progress it shows as stopped, with **Try again**; a late finish counts  |
+| Signal lost while making a cartridge    | Stops with "No signal"; nothing half-made is saved                                              |
+| Cloud usage limit (429) or server error | Retried after 2 s and 8 s (or the wait the server asks for, up to 30 s), then explained         |
+| App Check or permission refused         | Not retried; the message says what to set up                                                    |
+| Malformed reply from a model            | Cloud replies are retried; a device reply is rejected and the question escalates                |
+| Storage full or blocked                 | A plain message; a cartridge that was made but not saved can be saved again or exported as JSON |
+| Very long rulebook                      | Over 20 sections, you confirm the number of cloud requests first                                |
 
 ## Privacy
 
@@ -130,6 +161,30 @@ through Firebase AI Logic. There is no mock mode and no sample data. If Gemini N
 available, the app says so. Automated tests use a stand-in from `src/testing`, which ESLint keeps
 out of app code; results from it are labelled 'mock' and never shown as measured on a device.
 
+## Deploy to Firebase Hosting
+
+Production builds use reCAPTCHA Enterprise for App Check (never the debug provider).
+
+1. In the Google Cloud console, open **Security > reCAPTCHA** for the same project and create a
+   **Web** key (score-based, no checkbox challenge) for your Hosting domains, for example
+   `<project-id>.web.app` and `<project-id>.firebaseapp.com`. Do not add `localhost`.
+2. In the Firebase console, **Security > App Check > Apps**: register the web app with the
+   **reCAPTCHA Enterprise** provider and that key.
+3. Put the key in `VITE_APPCHECK_SITE_KEY` in `.env.local` (it is a public key that ships in the
+   page), then build and deploy:
+
+   ```sh
+   npm run build
+   npx firebase-tools login
+   npx firebase-tools deploy --only hosting --project <project-id>
+   ```
+
+4. Once App Check metrics show your app's requests as verified, enforce App Check for Firebase AI
+   Logic in the console.
+
+[firebase.json](firebase.json) serves every app path from `index.html`, never caches the page or
+the service worker, and caches the content-named files in `/assets` for a year.
+
 ## Where Firebase AI Logic is called
 
 | What                                                             | File                                                                                 | Mode                                   |
@@ -157,6 +212,9 @@ The raw Chrome `LanguageModel` API is never called (ESLint blocks it).
   large steps.
 - Everything is stored per browser profile. Clearing site data removes rulebooks, cartridges and
   the egress log.
+- The first visit needs a signal, and the app works offline only in production builds (the
+  development server does not register the service worker).
+- A new version of the app is used once every tab of the old one has been closed.
 
 ## Licence
 
