@@ -1,12 +1,50 @@
 # Cartridge
 
-Turns a long rulebook into a small, tested, offline-ready cartridge of numbered rules.
-Built for the #BuildHybridAI 2026 hackathon with Firebase AI Logic (cloud Gemini plus Gemini Nano in Chrome).
+Turns a long rulebook into a small, tested, offline-ready cartridge of numbered rules, answered by Gemini Nano on your own device.
 
 **Public standards go to the cloud once. Your diagram never does.**
 
-> Status: Phase 5 of 8 (versions, and rules the cloud suggests that you review and approve). See [docs/STATUS.md](docs/STATUS.md).
+<!-- Demo GIF goes here (docs/demo.gif), recorded on a real device in Phase 7. -->
+
+_Demo GIF: to be recorded on a real device in Phase 7._
+
+Built for the #BuildHybridAI 2026 hackathon with Firebase AI Logic (cloud Gemini plus Gemini Nano in Chrome).
+
+> Status: Phase 6 of 8 (product polish). See [docs/STATUS.md](docs/STATUS.md).
 > Reference tool, not an official authority.
+
+## Quick start
+
+Requirements: Node 20.19+ (tested on Node 24), desktop Chrome 139+ for on-device inference.
+
+```sh
+npm install
+cp .env.example .env.local   # fill in your Firebase web config (see Firebase setup below)
+npm run dev                  # http://localhost:5180
+```
+
+Then, in the app: **Load a rulebook** (a public, openly licensed PDF, .txt or .md), **Make the
+cartridge**, press **Prepare this device** in the header to download Gemini Nano once, run
+**Exam Day**, and **Ask**. The **Report card** shows how the cartridge did and what left the device.
+
+## What runs where
+
+| Step                                      | Where                                           | What is sent                                                                                                                   |
+| ----------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Load a rulebook (PDF, text)               | This device                                     | Nothing                                                                                                                        |
+| Make the cartridge                        | Cloud, when you press Make the cartridge        | The public rulebook text, section by section                                                                                   |
+| Check every rule's quote                  | This device                                     | Nothing                                                                                                                        |
+| Exam Day: write the test                  | Cloud                                           | The public rules (titles, conditions, instructions), no quotes                                                                 |
+| Exam Day: answer the test                 | This device (Gemini Nano), never the cloud      | Nothing                                                                                                                        |
+| Exam Day: tutor                           | Cloud                                           | The public rules involved and the practice questions they failed; never held-out                                               |
+| Ask: answer from the cartridge            | This device (Gemini Nano)                       | Nothing                                                                                                                        |
+| Ask: question the cartridge cannot answer | Cloud, only with 'Ask the cloud when needed' on | Your question, only after you approve the exact text, plus matching public rules and rulebook passages                         |
+| Approve a suggested rule: check           | Cloud writes 3 questions, this device answers   | The new public rule (not sent if it uses words from your question that the rulebook lacks); your question stays on this device |
+| Signal check before sending queued items  | Google connectivity URL                         | An empty `HEAD` request                                                                                                        |
+| Developer page (`/dev`) test buttons      | Cloud                                           | A fixed test prompt                                                                                                            |
+
+Every request that leaves the device is listed, with its exact content, in the **What left this
+device** panel.
 
 ## Privacy
 
@@ -19,15 +57,13 @@ compiler and again at run time). Anything the user types or draws is created as 
 `declassify()` in [src/privacy](src/privacy) is the only way across; it needs the user's approval of
 the exact text and writes to the egress log.
 
-## Quick start
-
-Requirements: Node 20.19+ (tested on Node 24), desktop Chrome 139+ for on-device inference.
+## Development
 
 ```sh
-npm install
-cp .env.example .env.local   # fill in your Firebase web config
 npm run dev                  # http://localhost:5180, hidden dev page at /dev
 npm test                     # typecheck + unit and type tests
+npm run lint
+npm run build && npm run preview   # production build on http://localhost:4180
 npm run smoke:cloud          # one real cloud call (needs .env.local and a registered debug token)
 ```
 
@@ -54,7 +90,9 @@ out of app code.
    browser console. Register it under **Security > App Check > Apps > Manage debug tokens**.
    Optionally paste it into `VITE_APPCHECK_DEBUG_TOKEN` in `.env.local`. Never commit it.
 4. For on-device inference in Chrome, enable `chrome://flags/#prompt-api-for-gemini-nano-multimodal-input`,
-   restart Chrome, and press **Prepare this device** on `/dev`.
+   restart Chrome, load a cartridge, and press **Prepare this device** in the header. If Gemini
+   Nano is not available, the header shows **Cloud mode**: questions then need the cloud, after
+   you approve each one.
 
 ## Where Firebase AI Logic is called
 
