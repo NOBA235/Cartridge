@@ -44,6 +44,19 @@ export const config = {
     cloudPassages: 4,
     passageMaxChars: 1200,
   },
+  /** Exam Day (brief Phase 4). Thresholds to be tuned after the first real-device run. */
+  exam: {
+    questionCount: 40,
+    outOfScopeShare: 0.2,
+    heldOutShare: 0.3,
+    /** Fewer usable questions than this and the exam is not run. */
+    minQuestions: 10,
+    tutorRounds: 2,
+    readyCriticalPassRate: 0.9,
+    readyOutOfScopeRate: 0.8,
+    /** Stop the run after this many device errors in a row. */
+    maxConsecutiveDeviceErrors: 5,
+  },
   /** Making a cartridge (brief Phase 2). */
   compile: {
     maxRules: 120,

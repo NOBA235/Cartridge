@@ -41,6 +41,23 @@ export type Rule = z.infer<typeof RuleSchema>;
 /** Fields the tutor must never change. */
 export const TUTOR_IMMUTABLE_FIELDS = ['then', 'exceptions', 'severity', 'source', 'calc'] as const;
 
+/** Fields the tutor may change. */
+export const TUTOR_PATCHABLE_FIELDS = ['title', 'when', 'keywords', 'notWhen'] as const;
+
+const Tally = z.object({
+  passed: z.number().int().nonnegative(),
+  total: z.number().int().nonnegative(),
+});
+
+/**
+ * Exam Day result (brief section 6). Rates:
+ * - passRate: practice questions, after the tutor's rounds.
+ * - heldOutPassRate: held-out questions, asked once at the end.
+ * - criticalPassRate: held-out questions whose expected rule is critical.
+ * - outOfScopeRate: held-out out-of-scope questions answered NONE.
+ * Added beyond the brief (optional, so older reports still parse): counts,
+ * thresholds, tutor rounds, latency, notes, and the user's override.
+ */
 export const ExamReportSchema = z.object({
   ranAt: z.string(),
   measuredOn: z.enum(['device', 'mock']),
@@ -49,9 +66,30 @@ export const ExamReportSchema = z.object({
   outOfScopeRate: z.number().min(0).max(1),
   heldOutPassRate: z.number().min(0).max(1),
   failures: z.array(
-    z.object({ question: z.string(), expected: z.string(), predicted: z.string() }),
+    z.object({
+      question: z.string(),
+      expected: z.string(),
+      predicted: z.string(),
+      set: z.enum(['practice', 'held-out']).optional(),
+    }),
   ),
+  /** Computed against the thresholds. Never changed by an override. */
   ready: z.boolean(),
+  counts: z
+    .object({
+      practiceStart: Tally,
+      practice: Tally,
+      heldOut: Tally,
+      heldOutCritical: Tally,
+      heldOutOutOfScope: Tally,
+    })
+    .optional(),
+  thresholds: z.object({ criticalPassRate: z.number(), outOfScopeRate: z.number() }).optional(),
+  tutorRounds: z.number().int().nonnegative().optional(),
+  medianLatencyMs: z.number().nonnegative().optional(),
+  notes: z.array(z.string()).optional(),
+  /** The user marked the cartridge ready although it is below the bar. */
+  overridden: z.object({ at: z.string() }).optional(),
 });
 export type ExamReport = z.infer<typeof ExamReportSchema>;
 

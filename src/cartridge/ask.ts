@@ -18,6 +18,7 @@ import {
   fillTemplate,
   renderTemplate,
   reveal,
+  type Classified,
   type Private,
   type Public,
 } from '@/privacy';
@@ -45,9 +46,16 @@ export interface DeviceHandle {
   ready: boolean;
 }
 
+/** What the device was shown and chose. Used by Exam Day to grade and to brief the tutor. */
+export interface DeviceTrace {
+  candidates: string[];
+  /** The rule ID (or NONE) the device returned, if it was asked and answered. */
+  chosen?: string;
+}
+
 export type DeviceStep =
-  | { kind: 'answered'; answer: Answer }
-  | { kind: 'escalate'; reason: EscalationReason; detail: string };
+  | { kind: 'answered'; answer: Answer; trace: DeviceTrace }
+  | { kind: 'escalate'; reason: EscalationReason; detail: string; trace: DeviceTrace };
 
 const DETAIL: Record<'LOW_RETRIEVAL' | 'DEVICE_UNAVAILABLE', string> = {
   LOW_RETRIEVAL: 'No rule in this cartridge is close to this question, so no model was asked.',
@@ -55,18 +63,24 @@ const DETAIL: Record<'LOW_RETRIEVAL' | 'DEVICE_UNAVAILABLE', string> = {
 };
 
 export async function answerOnDevice(
-  question: Private<string>,
+  question: Classified<string>,
   ctx: AskContext,
   device: DeviceHandle | undefined,
   now: () => Date = () => new Date(),
 ): Promise<DeviceStep> {
   const text = reveal(question);
   const retrieval = ctx.index.search(text);
+  const trace: DeviceTrace = { candidates: retrieval.hits.map((h) => h.rule.id) };
   if (!retrieval.confident) {
-    return { kind: 'escalate', reason: 'LOW_RETRIEVAL', detail: DETAIL.LOW_RETRIEVAL };
+    return { kind: 'escalate', reason: 'LOW_RETRIEVAL', detail: DETAIL.LOW_RETRIEVAL, trace };
   }
   if (!device?.ready) {
-    return { kind: 'escalate', reason: 'DEVICE_UNAVAILABLE', detail: DETAIL.DEVICE_UNAVAILABLE };
+    return {
+      kind: 'escalate',
+      reason: 'DEVICE_UNAVAILABLE',
+      detail: DETAIL.DEVICE_UNAVAILABLE,
+      trace,
+    };
   }
   const candidates = retrieval.hits.map((h) => h.rule);
   let selection;
@@ -76,10 +90,11 @@ export async function answerOnDevice(
     const message = e instanceof Error ? e.message : String(e);
     const reason: EscalationReason =
       e instanceof DeviceError && e.code === 'NOT_PREPARED' ? 'DEVICE_UNAVAILABLE' : 'DEVICE_ERROR';
-    return { kind: 'escalate', reason, detail: `The on-device model failed: ${message}` };
+    return { kind: 'escalate', reason, detail: `The on-device model failed: ${message}`, trace };
   }
+  trace.chosen = selection.ruleId;
   const v = validateSelection(selection, candidates, ctx.prepared);
-  if (!v.ok) return { kind: 'escalate', reason: v.reason, detail: v.detail };
+  if (!v.ok) return { kind: 'escalate', reason: v.reason, detail: v.detail, trace };
   const answer = answerFromRule(v.rule, {
     question: text,
     quantity: selection.quantity,
@@ -87,7 +102,7 @@ export async function answerOnDevice(
     quoteCheck: v.quoteCheck,
     now: now(),
   });
-  return { kind: 'answered', answer: { ...answer, deviceSource: selection.source } };
+  return { kind: 'answered', answer: { ...answer, deviceSource: selection.source }, trace };
 }
 
 // ---------- cloud ----------

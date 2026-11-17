@@ -7,8 +7,10 @@
  * - versions: every version of every cartridge, keyed by [id, version].
  * - queue: questions waiting for signal (shape completed in Phase 3).
  * - telemetry: the egress log ('What left this device'), keyed by entry id.
+ * - exams: the Exam Day questions per cartridge (practice and held-out), keyed by cartridge id.
  */
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
+import { ExamSetSchema, type ExamSet } from '@/exam/types';
 import type { QueueItem, QueueStorage } from '@/queue/offlineQueue';
 import type { EgressEntry } from '@/telemetry/egress';
 import type { SourceDoc } from './source';
@@ -31,10 +33,12 @@ export interface CartridgeDB extends DBSchema {
   versions: { key: [string, number]; value: Cartridge; indexes: { 'by-cartridge': string } };
   queue: { key: string; value: QueueItem; indexes: { 'by-created': string } };
   telemetry: { key: number; value: EgressEntry };
+  exams: { key: string; value: ExamSet };
 }
 
 export const DB_NAME = 'cartridge';
-export const DB_VERSION = 1;
+/** 1: Phase 1 stores. 2: adds 'exams' (Phase 4). */
+export const DB_VERSION = 2;
 
 export function openCartridgeDB(name = DB_NAME): Promise<IDBPDatabase<CartridgeDB>> {
   return openDB<CartridgeDB>(name, DB_VERSION, {
@@ -48,6 +52,9 @@ export function openCartridgeDB(name = DB_NAME): Promise<IDBPDatabase<CartridgeD
         );
         db.createObjectStore('queue', { keyPath: 'id' }).createIndex('by-created', 'createdAt');
         db.createObjectStore('telemetry', { keyPath: 'id' });
+      }
+      if (oldVersion < 2) {
+        db.createObjectStore('exams', { keyPath: 'cartridgeId' });
       }
     },
   });
@@ -124,16 +131,32 @@ export const cartridgesStore = {
     const cartridge = await d.get('versions', [id, record.currentVersion]);
     return cartridge ? { record, cartridge } : undefined;
   },
-  /** Deletes the cartridge and all its versions. */
+  /** Deletes the cartridge, all its versions and its saved exam. */
   async delete(id: string): Promise<void> {
     const d = await db();
-    const tx = d.transaction(['cartridges', 'versions'], 'readwrite');
+    const tx = d.transaction(['cartridges', 'versions', 'exams'], 'readwrite');
     const keys = await tx.objectStore('versions').index('by-cartridge').getAllKeys(id);
     await Promise.all([
       ...keys.map((k) => tx.objectStore('versions').delete(k)),
       tx.objectStore('cartridges').delete(id),
+      tx.objectStore('exams').delete(id),
       tx.done,
     ]);
+  },
+};
+
+/** The saved exam per cartridge, so the same held-out questions are used on every run. */
+export const examsStore = {
+  async get(cartridgeId: string): Promise<ExamSet | undefined> {
+    const raw = await (await db()).get('exams', cartridgeId);
+    const parsed = ExamSetSchema.safeParse(raw);
+    return parsed.success ? parsed.data : undefined;
+  },
+  async put(exam: ExamSet): Promise<void> {
+    await (await db()).put('exams', exam);
+  },
+  async delete(cartridgeId: string): Promise<void> {
+    await (await db()).delete('exams', cartridgeId);
   },
 };
 
