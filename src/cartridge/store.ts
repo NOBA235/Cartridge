@@ -8,11 +8,13 @@
  * - queue: questions waiting for signal (shape completed in Phase 3).
  * - telemetry: the egress log ('What left this device'), keyed by entry id.
  * - exams: the Exam Day questions per cartridge (practice and held-out), keyed by cartridge id.
+ * - proposals: rules the cloud suggested, waiting for review or decided, keyed by id.
  */
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import { ExamSetSchema, type ExamSet } from '@/exam/types';
 import type { QueueItem, QueueStorage } from '@/queue/offlineQueue';
 import type { EgressEntry } from '@/telemetry/egress';
+import { ProposalRecordSchema, type ProposalRecord } from './proposals';
 import type { SourceDoc } from './source';
 import type { Cartridge } from './types';
 
@@ -34,11 +36,12 @@ export interface CartridgeDB extends DBSchema {
   queue: { key: string; value: QueueItem; indexes: { 'by-created': string } };
   telemetry: { key: number; value: EgressEntry };
   exams: { key: string; value: ExamSet };
+  proposals: { key: string; value: ProposalRecord; indexes: { 'by-cartridge': string } };
 }
 
 export const DB_NAME = 'cartridge';
-/** 1: Phase 1 stores. 2: adds 'exams' (Phase 4). */
-export const DB_VERSION = 2;
+/** 1: Phase 1 stores. 2: adds 'exams' (Phase 4). 3: adds 'proposals' (Phase 5). */
+export const DB_VERSION = 3;
 
 export function openCartridgeDB(name = DB_NAME): Promise<IDBPDatabase<CartridgeDB>> {
   return openDB<CartridgeDB>(name, DB_VERSION, {
@@ -55,6 +58,12 @@ export function openCartridgeDB(name = DB_NAME): Promise<IDBPDatabase<CartridgeD
       }
       if (oldVersion < 2) {
         db.createObjectStore('exams', { keyPath: 'cartridgeId' });
+      }
+      if (oldVersion < 3) {
+        db.createObjectStore('proposals', { keyPath: 'id' }).createIndex(
+          'by-cartridge',
+          'cartridgeId',
+        );
       }
     },
   });
@@ -122,6 +131,11 @@ export const cartridgesStore = {
   async version(id: string, version: number): Promise<Cartridge | undefined> {
     return (await db()).get('versions', [id, version]);
   },
+  /** Every version of a cartridge, oldest first. */
+  async versions(id: string): Promise<Cartridge[]> {
+    const all = await (await db()).getAllFromIndex('versions', 'by-cartridge', id);
+    return all.sort((a, b) => a.version - b.version);
+  },
   async current(
     id: string,
   ): Promise<{ record: CartridgeRecord; cartridge: Cartridge } | undefined> {
@@ -131,17 +145,42 @@ export const cartridgesStore = {
     const cartridge = await d.get('versions', [id, record.currentVersion]);
     return cartridge ? { record, cartridge } : undefined;
   },
-  /** Deletes the cartridge, all its versions and its saved exam. */
+  /** Deletes the cartridge, all its versions, its saved exam and its suggestions. */
   async delete(id: string): Promise<void> {
     const d = await db();
-    const tx = d.transaction(['cartridges', 'versions', 'exams'], 'readwrite');
-    const keys = await tx.objectStore('versions').index('by-cartridge').getAllKeys(id);
+    const tx = d.transaction(['cartridges', 'versions', 'exams', 'proposals'], 'readwrite');
+    const [versionKeys, proposalKeys] = await Promise.all([
+      tx.objectStore('versions').index('by-cartridge').getAllKeys(id),
+      tx.objectStore('proposals').index('by-cartridge').getAllKeys(id),
+    ]);
     await Promise.all([
-      ...keys.map((k) => tx.objectStore('versions').delete(k)),
+      ...versionKeys.map((k) => tx.objectStore('versions').delete(k)),
+      ...proposalKeys.map((k) => tx.objectStore('proposals').delete(k)),
       tx.objectStore('cartridges').delete(id),
       tx.objectStore('exams').delete(id),
       tx.done,
     ]);
+  },
+};
+
+/** Suggested rules. Records that fail validation are skipped, never shown. */
+export const proposalsStore = {
+  async put(p: ProposalRecord): Promise<void> {
+    await (await db()).put('proposals', ProposalRecordSchema.parse(p));
+  },
+  async get(id: string): Promise<ProposalRecord | undefined> {
+    const parsed = ProposalRecordSchema.safeParse(await (await db()).get('proposals', id));
+    return parsed.success ? parsed.data : undefined;
+  },
+  /** Newest first. */
+  async list(cartridgeId: string): Promise<ProposalRecord[]> {
+    const all = await (await db()).getAllFromIndex('proposals', 'by-cartridge', cartridgeId);
+    return all
+      .flatMap((raw) => {
+        const p = ProposalRecordSchema.safeParse(raw);
+        return p.success ? [p.data] : [];
+      })
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   },
 };
 

@@ -25,8 +25,8 @@ import {
 import { answerFromRule, checkQuote, type Answer } from './answer';
 import { CLOUD_ANSWER_PROMPT, CLOUD_ANSWER_TASK, CloudAnswerReply } from './askPrompts';
 import { cleanQuote } from './compile';
-import { RuleDraftSchema, type RuleDraft } from './compilePrompts';
 import { formatPassages, passageIndexFor, type Passage } from './passages';
+import { checkProposal, type CheckedProposal } from './proposals';
 import type { RuleIndex } from './retrieve';
 import type { SourceText } from './source';
 import type { Cartridge, Rule } from './types';
@@ -149,8 +149,12 @@ export class AskError extends Error {
 }
 
 export interface CloudAnswer extends Answer {
-  /** A new rule the cloud proposed, kept only if its quote verifies (reviewed in Phase 5). */
-  proposal?: RuleDraft;
+  /** A rule the cloud suggested that passed the checks on this device. Added only if the user approves. */
+  proposal?: CheckedProposal;
+  /** Why a suggested rule was discarded. */
+  proposalDiscarded?: string;
+  /** Set once the suggestion is saved for review. */
+  proposalId?: string;
 }
 
 export async function askCloud(
@@ -181,8 +185,17 @@ export function interpretCloudReply(
   reason: EscalationReason,
   at: Date,
 ): CloudAnswer {
-  const proposal = verifiedProposal(data.proposedRule, ctx.prepared);
-  const extra = proposal ? { proposal } : {};
+  const check = checkProposal(data.proposedRule, {
+    rules: ctx.cartridge.rules,
+    source: ctx.source,
+    ...(ctx.prepared ? { prepared: ctx.prepared } : {}),
+    question: questionText,
+  });
+  const extra = !check
+    ? {}
+    : check.ok
+      ? { proposal: check.proposal }
+      : { proposalDiscarded: check.detail };
   const rule = data.ruleId ? ctx.cartridge.rules.find((r) => r.id === data.ruleId) : undefined;
   if (rule) {
     const answer = answerFromRule(rule, {
@@ -222,17 +235,6 @@ export function interpretCloudReply(
     ...(quoteCheck.page !== undefined ? { page: quoteCheck.page } : {}),
     ...extra,
   };
-}
-
-function verifiedProposal(
-  raw: unknown,
-  prepared: PreparedSource | undefined,
-): RuleDraft | undefined {
-  if (raw === null || raw === undefined || !prepared) return undefined;
-  const parsed = RuleDraftSchema.safeParse(raw);
-  if (!parsed.success) return undefined;
-  const quote = cleanQuote(parsed.data.quote);
-  return checkQuote(quote, prepared).ok ? { ...parsed.data, quote } : undefined;
 }
 
 // ---------- the whole question ----------

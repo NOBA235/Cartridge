@@ -14,7 +14,7 @@ import type { AskContext, DeviceHandle } from '@/cartridge/ask';
 import { answerOnDevice } from '@/cartridge/ask';
 import { NONE } from '@/cartridge/types';
 import { config } from '@/config';
-import { asPublic } from '@/privacy';
+import { asPrivate, asPublic } from '@/privacy';
 import { ExamError, type ExamItem, type ExamResult } from './types';
 
 export interface RunDeps {
@@ -26,8 +26,11 @@ export interface RunDeps {
   maxConsecutiveDeviceErrors?: number;
 }
 
+/** An exam item, or the user's own question (kept Private; it is only shown to the on-device model). */
+export type RunItem = ExamItem & { fromUser?: boolean };
+
 export async function runExam(
-  items: readonly ExamItem[],
+  items: readonly RunItem[],
   ctx: AskContext,
   deps: RunDeps,
 ): Promise<ExamResult[]> {
@@ -45,8 +48,11 @@ export async function runExam(
   for (const item of items) {
     if (deps.signal?.aborted) throw new ExamError('Stopped.', 'STOPPED');
     const started = clock();
-    // Exam questions were written by the cloud from public rules.
-    const step = await answerOnDevice(asPublic(item.question, 'cloud-response'), ctx, deps.device);
+    // Exam questions were written by the cloud from public rules; the user's own question stays Private.
+    const question = item.fromUser
+      ? asPrivate(item.question, 'user-question')
+      : asPublic(item.question, 'cloud-response');
+    const step = await answerOnDevice(question, ctx, deps.device);
     const latencyMs = Math.max(0, clock() - started);
 
     let predicted: string;

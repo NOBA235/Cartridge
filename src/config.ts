@@ -57,6 +57,13 @@ export const config = {
     /** Stop the run after this many device errors in a row. */
     maxConsecutiveDeviceErrors: 5,
   },
+  /** Checking an approved rule (brief Phase 5). */
+  versions: {
+    /** Questions the cloud writes for each new rule. */
+    questionsPerNewRule: 3,
+    /** Other saved exam questions answered again, to catch side effects. */
+    regressionQuestions: 8,
+  },
   /** Making a cartridge (brief Phase 2). */
   compile: {
     maxRules: 120,

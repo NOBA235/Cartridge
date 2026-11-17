@@ -351,32 +351,41 @@ describe('cloud answers', () => {
     expect(a.decision).toBeUndefined();
   });
 
-  it('keeps a proposed rule only if its quote verifies', async () => {
+  it('keeps a proposed rule only if it passes the checks, and says why one was discarded', async () => {
     const proposal = {
-      title: 'Soap',
-      when: 'w',
-      then: 'Provide 250 grams of bathing soap per person per month.',
+      title: 'Shared toilets for short stays',
+      when: 'A group stays only a few days',
+      then: 'Short stays of under 3 days may use shared facilities.',
       exceptions: [],
       severity: 'minor',
-      keywords: ['soap'],
-      section: 'Hygiene',
-      quote: 'Provide 250 grams of bathing soap per person per month.',
+      keywords: ['short stay'],
+      section: 'Sanitation',
+      quote: 'Short stays of under 3 days may use shared facilities.',
     };
-    const yes = setup({
-      ready: false,
-      reply: { ...NOT_COVERED, covered: true, answer: 'a', proposedRule: proposal },
-    });
-    expect((await ask('soap?', yes)).proposal?.title).toBe('Soap');
-    const no = setup({
-      ready: false,
-      reply: {
-        ...NOT_COVERED,
-        covered: true,
-        answer: 'a',
-        proposedRule: { ...proposal, quote: 'invented' },
-      },
-    });
-    expect((await ask('soap?', no)).proposal).toBeUndefined();
+    const reply = (proposedRule: unknown) =>
+      setup({ ready: false, reply: { ...NOT_COVERED, covered: true, answer: 'a', proposedRule } });
+
+    const yes = await ask('soap?', reply(proposal));
+    expect(yes.proposal?.draft.title).toBe('Shared toilets for short stays');
+    expect(yes.proposal?.page).toBe(2);
+    expect(yes.proposalDiscarded).toBeUndefined();
+
+    const invented = await ask('soap?', reply({ ...proposal, quote: 'invented' }));
+    expect(invented.proposal).toBeUndefined();
+    expect(invented.proposalDiscarded).toBe('Its quote was not found in the rulebook.');
+
+    const duplicate = await ask(
+      'soap?',
+      reply({ ...proposal, quote: 'Provide 250 grams of bathing soap per person per month.' }),
+    );
+    expect(duplicate.proposalDiscarded).toMatch(/already the evidence of R007/);
+
+    const noRulebook = await askQuestion(
+      asPrivate('soap?', 'user-question'),
+      context(FIELD_CARTRIDGE, false),
+      reply(proposal).deps,
+    );
+    expect(noRulebook.proposalDiscarded).toMatch(/not on this device/);
   });
 });
 
