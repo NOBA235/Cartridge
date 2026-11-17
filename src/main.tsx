@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { startAskSession } from '@/cartridge/askSession';
 import { telemetryStore } from '@/cartridge/store';
+import { registerOfflineShell } from '@/offline/register';
 import { egressLog } from '@/telemetry/egress';
 import { App } from './App';
 import './index.css';
@@ -11,6 +12,8 @@ import './index.css';
 void egressLog.attachPersistence({ load: telemetryStore.all, save: telemetryStore.put });
 // Load questions waiting for signal, and send them when signal comes back.
 startAskSession();
+// Save the app's own files on this device, so it opens without a signal.
+registerOfflineShell();
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing #root element');

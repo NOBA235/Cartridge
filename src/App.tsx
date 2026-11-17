@@ -1,6 +1,7 @@
 import { MotionConfig } from 'motion/react';
 import { useSyncExternalStore } from 'react';
 import { cn } from '@/lib/utils';
+import { offlineShell } from '@/offline/register';
 import { CartridgeSlot } from '@/ui/components/CartridgeSlot';
 import { EgressPanel } from '@/ui/components/EgressPanel';
 import { egressPanel } from '@/ui/egressPanelState';
@@ -38,6 +39,7 @@ function Screen({ path }: { path: AppPath }) {
 export function App() {
   const path = usePath();
   const egressOpen = useSyncExternalStore(egressPanel.subscribe, egressPanel.get);
+  const offline = useSyncExternalStore(offlineShell.subscribe, offlineShell.get);
   const entries = useEgressLog();
   const cloudCalls = entries.filter((e) => e.kind === 'cloud-call').length;
 
@@ -94,8 +96,11 @@ export function App() {
         <main id="main" tabIndex={-1} className="flex-1 px-6 outline-none">
           <Screen path={path} />
         </main>
-        <footer className="border-t px-6 py-3 text-xs text-muted-foreground">
-          Reference tool, not an official authority.
+        <footer className="flex flex-wrap justify-between gap-2 border-t px-6 py-3 text-xs text-muted-foreground">
+          <span>Reference tool, not an official authority.</span>
+          {offline === 'ready' && (
+            <span>Saved on this device: the app opens without a signal.</span>
+          )}
         </footer>
       </div>
       <EgressPanel open={egressOpen} onClose={egressPanel.close} />
