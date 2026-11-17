@@ -28,7 +28,7 @@ export const config = {
   deviceMaxPromptChars: 16_000,
   /** Shown in the UI and used by the device model's createOptions. */
   deviceLanguages: ['en'],
-  /** Asking a question (brief Phase 3). */
+  /** Asking a question. */
   ask: {
     /** Rules the device model may choose from. */
     topK: 5,
@@ -44,7 +44,7 @@ export const config = {
     cloudPassages: 4,
     passageMaxChars: 1200,
   },
-  /** Exam Day (brief Phase 4). Thresholds to be tuned after the first real-device run. */
+  /** Exam Day. Thresholds to be tuned on real-device runs. */
   exam: {
     questionCount: 40,
     outOfScopeShare: 0.2,
@@ -57,14 +57,14 @@ export const config = {
     /** Stop the run after this many device errors in a row. */
     maxConsecutiveDeviceErrors: 5,
   },
-  /** Checking an approved rule (brief Phase 5). */
+  /** Checking an approved rule. */
   versions: {
     /** Questions the cloud writes for each new rule. */
     questionsPerNewRule: 3,
     /** Other saved exam questions answered again, to catch side effects. */
     regressionQuestions: 8,
   },
-  /** Making a cartridge (brief Phase 2). */
+  /** Making a cartridge. */
   compile: {
     maxRules: 120,
     maxChunkChars: 30_000,

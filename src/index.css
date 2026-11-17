@@ -3,8 +3,8 @@
 /*
  * Theme tokens follow the shadcn/ui Tailwind v4 convention (CSS variables mapped
  * through @theme inline). One accent colour (indigo) on neutral surfaces.
- * Inter is listed first; it is not bundled yet, so the system UI font is the
- * offline fallback (self-hosting Inter is a Phase 6 task).
+ * Inter is listed first; it is not bundled, so the system UI font is the
+ * offline fallback.
  */
 
 @custom-variant dark (&:is(.dark *));

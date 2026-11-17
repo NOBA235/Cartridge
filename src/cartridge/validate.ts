@@ -1,5 +1,5 @@
 /**
- * Validators for the device model's choice (brief section 5, step 4).
+ * Validators for the device model's choice (step 4 of the Ask pipeline).
  * The rule ID must be one of the candidates it was shown, and the rule's quote
  * must verify against the rulebook on this device. Anything else escalates.
  */

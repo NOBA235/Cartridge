@@ -1,8 +1,8 @@
 /**
  * Cloud tasks for making a cartridge: COMPILE (one call per section) and
  * REPAIR_QUOTE (at most one call per section, only for rules whose quote failed).
- * Prompt text follows brief section 8; the JSON wrapper line is added because
- * the response schema has an object at the root.
+ * The prompts ask for a JSON object at the root, because the response schema
+ * has an object at the root.
  */
 import { Schema } from 'firebase/ai';
 import { z } from 'zod';
@@ -47,7 +47,7 @@ const calcSchema = Schema.object({
   },
 });
 
-/** One rule in the compile output's shape. Also used for proposed rules (Phase 3 and 5). */
+/** One rule in the compile output's shape. Also used for rules the cloud suggests. */
 export function ruleDraftSchema(params: { nullable?: boolean } = {}) {
   return Schema.object({
     properties: {

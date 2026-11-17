@@ -1,11 +1,10 @@
 /**
- * IndexedDB storage (idb). Stores: sources, cartridges, versions, queue, telemetry.
- * Everything stays on this device.
+ * IndexedDB storage (idb). Everything stays on this device.
  *
  * - sources: loaded rulebooks, keyed by id (derived from the SHA-256 hash).
  * - cartridges: one record per cartridge: name, source and current version.
  * - versions: every version of every cartridge, keyed by [id, version].
- * - queue: questions waiting for signal (shape completed in Phase 3).
+ * - queue: questions waiting for signal.
  * - telemetry: the egress log ('What left this device'), keyed by entry id.
  * - exams: the Exam Day questions per cartridge (practice and held-out), keyed by cartridge id.
  * - proposals: rules the cloud suggested, waiting for review or decided, keyed by id.
@@ -41,7 +40,7 @@ export interface CartridgeDB extends DBSchema {
 }
 
 export const DB_NAME = 'cartridge';
-/** 1: Phase 1 stores. 2: adds 'exams' (Phase 4). 3: adds 'proposals' (Phase 5). */
+/** 1: sources, cartridges, versions, queue, telemetry. 2: adds 'exams'. 3: adds 'proposals'. */
 export const DB_VERSION = 3;
 
 export function openCartridgeDB(name = DB_NAME): Promise<IDBPDatabase<CartridgeDB>> {

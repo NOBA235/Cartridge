@@ -1,8 +1,8 @@
 /**
- * Exam Day cloud tasks (brief section 8: EXAM_PROMPT and TUTOR_PROMPT).
- * Additions to the brief's text, because the response schema needs an object
- * at the root and because a rule may be listed more than once in a small
- * cartridge: the 'Return JSON only' line and one sentence about repeats.
+ * Exam Day cloud tasks: EXAM_PROMPT and TUTOR_PROMPT.
+ * The 'Return JSON only' line is there because the response schema needs an
+ * object at the root, and one sentence covers repeats, because a rule may be
+ * listed more than once in a small cartridge.
  */
 import { Schema } from 'firebase/ai';
 import { z } from 'zod';

@@ -1,5 +1,5 @@
 /**
- * Prompt templates (brief section 8). Cloud templates are Public by nature:
+ * Prompt templates. Cloud templates are Public by nature:
  * they are our own text. Device prompts are built from plain strings because
  * they never leave the device.
  */

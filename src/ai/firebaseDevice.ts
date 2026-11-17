@@ -4,7 +4,7 @@
  * One instance per cartridge version: the response schema (an enum of every
  * rule ID plus NONE) is fixed when the GenerativeModel is created.
  *
- * Privacy guards (see docs/STATUS.md, "On-device fallback finding"):
+ * Privacy guards (see README, "On-device fallback guard"):
  * In @firebase/ai 13.3.0, if the browser has no Prompt API, getGenerativeModel()
  * creates no on-device adapter, initializeDeviceModel() resolves without error,
  * and generateContent() in ONLY_ON_DEVICE mode sends the request to the CLOUD.

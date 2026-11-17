@@ -1,5 +1,5 @@
 /**
- * Cartridge data model (brief section 6). The zod schemas are the source of
+ * Cartridge data model. The zod schemas are the source of
  * truth; TypeScript types are inferred from them so the two cannot drift.
  */
 import { z } from 'zod';
@@ -50,13 +50,13 @@ const Tally = z.object({
 });
 
 /**
- * Exam Day result (brief section 6). Rates:
+ * Exam Day result. Rates:
  * - passRate: practice questions, after the tutor's rounds.
  * - heldOutPassRate: held-out questions, asked once at the end.
  * - criticalPassRate: held-out questions whose expected rule is critical.
  * - outOfScopeRate: held-out out-of-scope questions answered NONE.
- * Added beyond the brief (optional, so older reports still parse): counts,
- * thresholds, tutor rounds, latency, notes, and the user's override.
+ * Optional, so older reports still parse: counts, thresholds, tutor rounds,
+ * latency, notes, and the user's override.
  */
 export const ExamReportSchema = z.object({
   ranAt: z.string(),
@@ -101,7 +101,7 @@ export const CartridgeSchema = z
     parentVersion: z.number().int().positive().optional(),
     createdAt: z.string(),
     sourceHash: z.string(),
-    /** Added to the brief's model: the rulebook's name and licence travel with exported quotes. */
+    /** The rulebook's name and licence travel with exported quotes. */
     sourceName: z.string().optional(),
     sourceLicence: z.string().optional(),
     rules: z.array(RuleSchema),

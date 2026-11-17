@@ -4,13 +4,10 @@ Turns a long rulebook into a small, tested, offline-ready cartridge of numbered 
 
 **Public standards go to the cloud once. Your diagram never does.**
 
-<!-- Demo GIF goes here (docs/demo.gif), recorded on a real device in Phase 7. -->
-
-_Demo GIF: to be recorded on a real device in Phase 7._
+<!-- Demo GIF: docs/demo.gif -->
 
 Built for the #BuildHybridAI 2026 hackathon with Firebase AI Logic (cloud Gemini plus Gemini Nano in Chrome).
 
-> Status: Phase 6 of 8 (product polish). See [docs/STATUS.md](docs/STATUS.md).
 > Reference tool, not an official authority.
 
 ## Quick start
@@ -46,6 +43,31 @@ cartridge**, press **Prepare this device** in the header to download Gemini Nano
 Every request that leaves the device is listed, with its exact content, in the **What left this
 device** panel.
 
+## How it works
+
+1. **Load a rulebook.** pdf.js extracts the text in a Web Worker, keeping page numbers. The text
+   and its SHA-256 hash are stored in IndexedDB. You confirm the document is public and name its
+   licence before it can be sent anywhere.
+2. **Make the cartridge.** Each section goes to cloud Gemini once, which returns rules as JSON
+   (checked with zod). Every rule must quote the rulebook, and code checks each quote against the
+   stored text after normalising hyphenation, ligatures, quotes, dashes and whitespace. A rule
+   whose quote cannot be found, or whose numbers do not appear in its section, is left out with
+   the reason shown. Duplicates are merged and rules are numbered R001, R002, ...
+3. **Exam Day.** The cloud writes about 40 questions, including some the rules do not answer.
+   They are split 70/30 into practice and held-out. Gemini Nano answers on the device; a cloud
+   tutor may reword the titles, conditions and keywords of rules that failed in practice (never
+   the instruction, the quote or the severity), and a round that lowers the score is undone. The
+   held-out set is asked once at the end, so the test pass rate on the report card is measured on
+   questions the tutor never saw.
+4. **Ask.** Search (MiniSearch) picks the 5 closest rules. Gemini Nano chooses one of them, or
+   none. The answer is built from the rule itself, its quote is checked again, and any
+   calculation is done in code, using only numbers written in your question. If the cartridge
+   cannot answer, the question goes to the cloud only with your approval of the exact text, or
+   waits for signal.
+5. **Versions.** When the cloud answers a question the cartridge missed, it may suggest a rule.
+   The suggestion is kept only if its quote is in the rulebook. You review the change, approve it
+   as a new version (nothing is ever overwritten), and the device re-runs the affected questions.
+
 ## Privacy
 
 - Public standards and regulations (an openly licensed excerpt, for example from NIST or an OWASP project) go to the cloud once, to compile the cartridge.
@@ -55,12 +77,39 @@ device** panel.
 How the code enforces this: every cloud function accepts only `Public<T>` values (checked by the
 compiler and again at run time). Anything the user types or draws is created as `Private<T>`.
 `declassify()` in [src/privacy](src/privacy) is the only way across; it needs the user's approval of
-the exact text and writes to the egress log.
+the exact text and writes to the egress log. These checks guard against mistakes in our own code;
+they cannot stop other code running in the same page.
+
+### On-device fallback guard
+
+In `@firebase/ai` 13.3.0, when the browser has no Prompt API, a model created with
+`InferenceMode.ONLY_ON_DEVICE` sends `generateContent()` to the cloud instead of failing. So
+[src/ai/firebaseDevice.ts](src/ai/firebaseDevice.ts) adds three guards:
+
+1. The device is marked ready only if the SDK built its on-device adapter. This reads an SDK
+   internal field; if a future SDK renames it, the check fails closed and the device shows as
+   unavailable.
+2. The device model's cloud base URL is `https://on-device-only.invalid`, so an accidental cloud
+   fallback cannot reach a server.
+3. A response whose `inferenceSource` is not `on_device` is rejected and logged as unexpected.
+
+## Firebase setup
+
+1. Create a Firebase project, add a Web app, and copy its config into `.env.local`.
+2. In the console, open **AI Services > AI Logic**, click **Get started** and choose the
+   **Gemini Developer API**. This enforces App Check for AI Logic.
+3. Run `npm run dev`, open the app, and copy the `Firebase App Check debug token` printed in the
+   browser console. Register it under **Security > App Check > Apps > Manage debug tokens**.
+   Optionally paste it into `VITE_APPCHECK_DEBUG_TOKEN` in `.env.local`. Never commit it.
+4. For on-device inference in Chrome, enable `chrome://flags/#prompt-api-for-gemini-nano-multimodal-input`,
+   restart Chrome, load a cartridge, and press **Prepare this device** in the header. If Gemini
+   Nano is not available, the header shows **Cloud mode**: questions then need the cloud, after
+   you approve each one.
 
 ## Development
 
 ```sh
-npm run dev                  # http://localhost:5180, hidden dev page at /dev
+npm run dev                  # http://localhost:5180, developer page at /dev
 npm test                     # typecheck + unit and type tests
 npm run lint
 npm run build && npm run preview   # production build on http://localhost:4180
@@ -79,20 +128,7 @@ npm run smoke:compile
 The app always uses the real models: Gemini Nano on this device and Gemini in the cloud, both
 through Firebase AI Logic. There is no mock mode and no sample data. If Gemini Nano is not
 available, the app says so. Automated tests use a stand-in from `src/testing`, which ESLint keeps
-out of app code.
-
-### Firebase setup
-
-1. Create a Firebase project, add a Web app, and copy its config into `.env.local`.
-2. In the console, open **AI Services > AI Logic**, click **Get started** and choose the
-   **Gemini Developer API**. This enforces App Check for AI Logic.
-3. Run `npm run dev`, open the app, and copy the `Firebase App Check debug token` printed in the
-   browser console. Register it under **Security > App Check > Apps > Manage debug tokens**.
-   Optionally paste it into `VITE_APPCHECK_DEBUG_TOKEN` in `.env.local`. Never commit it.
-4. For on-device inference in Chrome, enable `chrome://flags/#prompt-api-for-gemini-nano-multimodal-input`,
-   restart Chrome, load a cartridge, and press **Prepare this device** in the header. If Gemini
-   Nano is not available, the header shows **Cloud mode**: questions then need the cloud, after
-   you approve each one.
+out of app code; results from it are labelled 'mock' and never shown as measured on a device.
 
 ## Where Firebase AI Logic is called
 
@@ -108,6 +144,19 @@ out of app code.
 | Device rule selection (Gemini Nano)                              | [src/ai/firebaseDevice.ts](src/ai/firebaseDevice.ts)                                 | `InferenceMode.ONLY_ON_DEVICE`         |
 
 The raw Chrome `LanguageModel` API is never called (ESLint blocks it).
+
+## Limitations
+
+- Gemini Nano needs desktop Chrome 139+ on supported hardware, and the first download is several
+  GB. Without it, questions need the cloud.
+- PDF extraction is tested on generated PDFs. Two-column layouts, tables and scanned pages may
+  extract out of order or not at all; quotes from such passages fail the check and those rules
+  are left out.
+- The search threshold and the Exam Day thresholds were set on a small test rulebook.
+- Held-out sets are small (12 questions for a 40-question exam), so the test pass rate moves in
+  large steps.
+- Everything is stored per browser profile. Clearing site data removes rulebooks, cartridges and
+  the egress log.
 
 ## Licence
 

@@ -4,8 +4,8 @@
  * 'Ask the cloud when needed':
  * - Ask screen: on by default, the user may switch it off.
  * - Blueprint canvas: off and locked. The canvas makes no automatic cloud calls.
- *   (A manual, previewed, approved send through declassify() is a separate,
- *   per-message action added in Phase 8.)
+ *   (A manual, previewed, approved send through declassify() would be a
+ *   separate, per-message action.)
  */
 import { createStore } from '@/lib/store';
 

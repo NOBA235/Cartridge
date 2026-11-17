@@ -1,6 +1,6 @@
 /**
- * Router skeleton (brief section 5). Pure decisions only; Phase 3 wires it into
- * the Ask pipeline.
+ * Routing decisions for one question. Pure functions only; the Ask pipeline
+ * (src/cartridge/ask.ts) acts on them.
  *
  * The device is always tried first. When the device cannot give a verified
  * answer, escalate() decides between the cloud, the offline queue, or staying

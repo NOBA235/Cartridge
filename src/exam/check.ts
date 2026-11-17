@@ -1,5 +1,5 @@
 /**
- * The check after a suggested rule is approved (brief Phase 5): re-run the exam
+ * The check after a suggested rule is approved: re-run the exam
  * for the changed rules plus a regression subset, on this device.
  *
  * 1. If there is signal, the cloud writes a few questions for each new rule

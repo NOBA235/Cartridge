@@ -1,5 +1,5 @@
 /**
- * One question, end to end (brief section 5):
+ * One question, end to end:
  * 1. retrieve(): MiniSearch top 5. Under the threshold: LOW_RETRIEVAL, no model is asked.
  * 2. The device model sees only those candidates and the question, and returns
  *    { ruleId, quantity }.

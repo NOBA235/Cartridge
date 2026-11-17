@@ -1,8 +1,8 @@
 /**
- * Cloud task for a question the cartridge could not answer (CLOUD_ANSWER_PROMPT,
- * brief section 8). Two fields are added to the brief's return shape so code
- * can check the answer: 'quote' (the exact passage relied on) and 'quantity'
- * (the number from the question a rule's calculation needs, or -1).
+ * Cloud task for a question the cartridge could not answer (CLOUD_ANSWER_PROMPT).
+ * Besides the answer, the cloud returns two fields so code can check it:
+ * 'quote' (the exact passage relied on) and 'quantity' (the number from the
+ * question a rule's calculation needs, or -1).
  */
 import { Schema } from 'firebase/ai';
 import { z } from 'zod';
@@ -47,7 +47,7 @@ export const CloudAnswerReply = z.object({
   quote: z.string().nullish(),
   quantity: z.number().default(-1),
   covered: z.boolean(),
-  /** Checked separately (Phase 5 reviews proposals); a bad proposal never sinks the answer. */
+  /** Checked separately (see proposals.ts); a bad proposal never sinks the answer. */
   proposedRule: z.unknown().nullish(),
 });
 export type CloudAnswerReply = z.infer<typeof CloudAnswerReply>;
