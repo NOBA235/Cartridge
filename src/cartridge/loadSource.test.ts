@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { draftFromFile, draftFromPaste, kindOfFile, MAX_FILE_BYTES } from './loadSource';
+import {
+  draftFromFile,
+  draftFromPaste,
+  kindOfFile,
+  MAX_FILE_BYTES,
+  MAX_PASTE_CHARS,
+} from './loadSource';
 import { SourceError } from './source';
 
 describe('loading a source', () => {
@@ -28,5 +34,11 @@ describe('loading a source', () => {
   it('names pasted text and refuses empty text', async () => {
     expect((await draftFromPaste('  ', 'Some rules.')).name).toBe('Pasted text');
     await expect(draftFromPaste('n', '  ')).rejects.toBeInstanceOf(SourceError);
+  });
+
+  it('refuses pasted text over the limit', async () => {
+    await expect(draftFromPaste('n', 'a'.repeat(MAX_PASTE_CHARS + 1))).rejects.toThrow(
+      /load it as a file instead/,
+    );
   });
 });

@@ -3,12 +3,14 @@
  * ('Reading section 3 of 12', 'Verified 38 of 41 quotes'), and the result
  * with every left-out rule and its reason.
  */
-import { useMemo, useSyncExternalStore } from 'react';
+import { useId, useMemo, useState, useSyncExternalStore } from 'react';
+import { exportCartridgeJson, exportFileName } from '@/cartridge/cartridgeIO';
 import { chunkSource } from '@/cartridge/chunker';
 import { compileJobs, type CompileJob } from '@/cartridge/compileJob';
 import type { DroppedRule, SectionFailure } from '@/cartridge/compile';
 import type { SourceDoc } from '@/cartridge/source';
 import { config } from '@/config';
+import { downloadText } from '@/ui/download';
 import { useOnline } from '@/ui/hooks/useStores';
 import { Button, buttonVariants } from '@/ui/primitives/button';
 import { linkHandler, href } from '@/ui/router';
@@ -59,6 +61,9 @@ export function CompilePanel({ source }: { source: SourceDoc }) {
     () => chunkSource(source, { maxChars: config.compile.maxChunkChars }).length,
     [source],
   );
+  const long = sections > config.compile.confirmAboveSections;
+  const [confirmedLong, setConfirmedLong] = useState(false);
+  const confirmId = useId();
 
   if (job?.status === 'running') {
     const fraction = job.sectionCount > 0 ? (job.section - 0.5) / job.sectionCount : 0;
@@ -132,8 +137,27 @@ export function CompilePanel({ source }: { source: SourceDoc }) {
       {job?.status === 'failed' && (
         <div className="flex flex-col gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3">
           <p role="alert" className="text-sm text-destructive">
-            The cartridge was not made. {job.error}
+            {job.unsaved
+              ? `The cartridge was made (${job.unsaved.cartridge.rules.length} rules) but not saved. ${job.error}`
+              : `The cartridge was not made. ${job.error}`}
           </p>
+          {job.unsaved && (
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => void compileJobs.saveAgain(source.id)}>
+                Save again
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const c = job.unsaved?.cartridge;
+                  if (c) downloadText(exportFileName(c), exportCartridgeJson(c));
+                }}
+              >
+                Export JSON instead
+              </Button>
+            </div>
+          )}
           <LeftOut dropped={job.dropped} failedSections={job.failedSections} />
         </div>
       )}
@@ -142,7 +166,26 @@ export function CompilePanel({ source }: { source: SourceDoc }) {
       )}
 
       <div className="flex flex-col gap-1">
-        <Button className="self-start" onClick={() => compileJobs.start(source)} disabled={!online}>
+        {long && online && (
+          <div className="flex items-start gap-2">
+            <input
+              id={confirmId}
+              type="checkbox"
+              className="mt-1 size-4 accent-primary"
+              checked={confirmedLong}
+              onChange={(e) => setConfirmedLong(e.target.checked)}
+            />
+            <label htmlFor={confirmId} className="text-sm">
+              This rulebook is long: making the cartridge sends {sections} requests to the cloud,
+              one after another, and can take a long time. Stopping part-way saves nothing.
+            </label>
+          </div>
+        )}
+        <Button
+          className="self-start"
+          onClick={() => compileJobs.start(source)}
+          disabled={!online || (long && !confirmedLong)}
+        >
           {job?.status === 'done' ? 'Make the cartridge again' : 'Make the cartridge'}
         </Button>
         <p className="text-xs text-muted-foreground">

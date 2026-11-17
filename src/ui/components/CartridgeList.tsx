@@ -4,6 +4,8 @@ import { exportCartridgeJson, exportFileName, importCartridgeJson } from '@/cart
 import { compileJobs } from '@/cartridge/compileJob';
 import { activeCartridge } from '@/cartridge/active';
 import { cartridgesStore, sourcesStore, type CartridgeRecord } from '@/cartridge/store';
+import { config } from '@/config';
+import { storageErrorMessage } from '@/lib/storageErrors';
 import { downloadText } from '@/ui/download';
 import { Button, buttonVariants } from '@/ui/primitives/button';
 import { href, linkHandler } from '@/ui/router';
@@ -118,10 +120,21 @@ export function CartridgeList() {
     setError(null);
     setNotice(null);
     try {
+      if (file.size > config.maxImportBytes) {
+        setError(
+          `This file is ${Math.round(file.size / 1024 / 1024)} MB. A cartridge file is at most ${Math.round(config.maxImportBytes / 1024 / 1024)} MB.`,
+        );
+        return;
+      }
       const cartridge = importCartridgeJson(await file.text());
       const sources = await sourcesStore.list();
       const source = sources.find((s) => s.hash === cartridge.sourceHash);
-      await cartridgesStore.saveVersion(cartridge, source?.id ?? '');
+      try {
+        await cartridgesStore.saveVersion(cartridge, source?.id ?? '');
+      } catch (e) {
+        setError(storageErrorMessage(e, 'the cartridge'));
+        return;
+      }
       activeCartridge.set(cartridge.id);
       setNotice(
         source

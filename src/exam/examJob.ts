@@ -7,6 +7,7 @@ import { cloudJson } from '@/ai/cloud';
 import { deviceSessions } from '@/ai/deviceSessions';
 import { loadAskContext } from '@/cartridge/askSession';
 import { cartridgesStore, examsStore } from '@/cartridge/store';
+import { storageErrorMessage } from '@/lib/storageErrors';
 import { createStore } from '@/lib/store';
 import { runExamDay, type ExamDayResult } from './examDay';
 import { cartridgeAfterExam, overrideReady } from './save';
@@ -93,7 +94,11 @@ export const examJobs = {
         },
       });
       const { cartridge, newVersion } = cartridgeAfterExam(ctx.cartridge, result);
-      await cartridgesStore.saveVersion(cartridge, ctx.record.sourceId);
+      try {
+        await cartridgesStore.saveVersion(cartridge, ctx.record.sourceId);
+      } catch (e) {
+        throw new Error(storageErrorMessage(e, 'the Exam Day result'), { cause: e });
+      }
       set(cartridgeId, { status: 'done', result, savedVersion: cartridge.version, newVersion });
     };
 

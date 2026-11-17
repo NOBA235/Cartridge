@@ -16,7 +16,7 @@ import type { QueueItem, QueueStorage } from '@/queue/offlineQueue';
 import type { EgressEntry } from '@/telemetry/egress';
 import { ProposalRecordSchema, type ProposalRecord } from './proposals';
 import type { SourceDoc } from './source';
-import type { Cartridge } from './types';
+import { CartridgeSchema, type Cartridge } from './types';
 
 export interface CartridgeRecord {
   id: string;
@@ -124,7 +124,9 @@ export function cartridgeRecord(c: Cartridge, sourceId: string, now = new Date()
 
 export const cartridgesStore = {
   /** Saves a version and makes it the current one, in one transaction. */
-  async saveVersion(c: Cartridge, sourceId: string): Promise<CartridgeRecord> {
+  async saveVersion(input: Cartridge, sourceId: string): Promise<CartridgeRecord> {
+    // Never store a cartridge that would not load again.
+    const c = CartridgeSchema.parse(input);
     const d = await db();
     const record = cartridgeRecord(c, sourceId);
     const tx = d.transaction(['cartridges', 'versions'], 'readwrite');
@@ -137,7 +139,12 @@ export const cartridgesStore = {
     return record;
   },
   /** Saves a version, makes it current, and records the decided suggestion, in one transaction. */
-  async saveVersionWithProposal(c: Cartridge, sourceId: string, p: ProposalRecord): Promise<void> {
+  async saveVersionWithProposal(
+    input: Cartridge,
+    sourceId: string,
+    p: ProposalRecord,
+  ): Promise<void> {
+    const c = CartridgeSchema.parse(input);
     const d = await db();
     const tx = d.transaction(['cartridges', 'versions', 'proposals'], 'readwrite');
     await Promise.all([

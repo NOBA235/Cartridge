@@ -1,14 +1,17 @@
 /**
  * Runs 'Make the cartridge' outside any one screen, so progress survives
  * navigating away. One job per source. The finished cartridge is saved to
- * IndexedDB before the job reports 'done'.
+ * IndexedDB before the job reports 'done'; if saving fails, the job keeps it
+ * so it can be saved again or exported.
  */
 import { cloudJson } from '@/ai/cloud';
+import { storageErrorMessage } from '@/lib/storageErrors';
 import { createStore } from '@/lib/store';
 import {
   compileCartridge,
   CompileError,
   type CompileNote,
+  type CompileResult,
   type CompileStats,
   type DroppedRule,
   type SectionFailure,
@@ -36,7 +39,14 @@ export type CompileJob =
       failedSections: SectionFailure[];
       stats: CompileStats;
     }
-  | { status: 'failed'; error: string; dropped: DroppedRule[]; failedSections: SectionFailure[] }
+  | {
+      status: 'failed';
+      error: string;
+      dropped: DroppedRule[];
+      failedSections: SectionFailure[];
+      /** Made but not saved (storage full or blocked): kept here to save again or export. */
+      unsaved?: CompileResult;
+    }
   | { status: 'stopped' };
 
 const jobs = createStore<Readonly<Record<string, CompileJob>>>({});
@@ -61,9 +71,42 @@ function patchRunning(
   );
 }
 
+/** Saves a finished cartridge. If storage fails, the result is kept so nothing made is lost. */
+async function save(sourceId: string, res: CompileResult): Promise<void> {
+  try {
+    await cartridgesStore.saveVersion(res.cartridge, sourceId);
+  } catch (e) {
+    update(sourceId, {
+      status: 'failed',
+      error: storageErrorMessage(e, 'the cartridge'),
+      dropped: res.dropped,
+      failedSections: res.failedSections,
+      unsaved: res,
+    });
+    return;
+  }
+  activeCartridge.set(res.cartridge.id);
+  update(sourceId, {
+    status: 'done',
+    cartridgeId: res.cartridge.id,
+    kept: res.cartridge.rules.length,
+    dropped: res.dropped,
+    notes: res.notes,
+    failedSections: res.failedSections,
+    stats: res.stats,
+  });
+}
+
 export const compileJobs = {
   subscribe: jobs.subscribe,
   get: jobs.get,
+
+  /** Tries again to save a cartridge that was made but could not be saved. */
+  saveAgain(sourceId: string): Promise<void> {
+    const job = jobs.get()[sourceId];
+    if (job?.status !== 'failed' || !job.unsaved) return Promise.resolve();
+    return save(sourceId, job.unsaved);
+  },
 
   start(source: SourceDoc): void {
     if (jobs.get()[source.id]?.status === 'running') return;
@@ -98,19 +141,7 @@ export const compileJobs = {
         }
       },
     })
-      .then(async (res) => {
-        await cartridgesStore.saveVersion(res.cartridge, source.id);
-        activeCartridge.set(res.cartridge.id);
-        update(source.id, {
-          status: 'done',
-          cartridgeId: res.cartridge.id,
-          kept: res.cartridge.rules.length,
-          dropped: res.dropped,
-          notes: res.notes,
-          failedSections: res.failedSections,
-          stats: res.stats,
-        });
-      })
+      .then((res) => save(source.id, res))
       .catch((e: unknown) => {
         if (e instanceof CompileError && e.code === 'STOPPED') {
           update(source.id, { status: 'stopped' });

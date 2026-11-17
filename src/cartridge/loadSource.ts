@@ -38,6 +38,16 @@ export async function draftFromFile(
   return buildDraftFromText(file.name, await file.text(), kind);
 }
 
+/** Pasted text limit, in characters (a pasted rulebook larger than this is better loaded as a file). */
+export const MAX_PASTE_CHARS = 5_000_000;
+
 export function draftFromPaste(name: string, text: string): Promise<SourceDraft> {
+  if (text.length > MAX_PASTE_CHARS) {
+    return Promise.reject(
+      new SourceError(
+        `This text has ${text.length.toLocaleString('en')} characters. The limit for pasted text is ${MAX_PASTE_CHARS.toLocaleString('en')}; load it as a file instead.`,
+      ),
+    );
+  }
   return buildDraftFromText(name.trim() || 'Pasted text', text, 'text');
 }

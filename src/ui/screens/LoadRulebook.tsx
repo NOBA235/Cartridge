@@ -14,6 +14,7 @@ import { SourceContext } from '@/ui/components/SourceContext';
 import { Button } from '@/ui/primitives/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/primitives/card';
 import { inputClass, textareaClass } from '@/ui/styles';
+import { requestPersistentStorage, storageErrorMessage } from '@/lib/storageErrors';
 
 function describeError(e: unknown): string {
   if (e instanceof SourceError) return e.message;
@@ -249,7 +250,14 @@ export function LoadRulebook() {
     if (!draft) return;
     try {
       const doc = confirmSource(draft, licence);
-      await sourcesStore.put(doc);
+      try {
+        await sourcesStore.put(doc);
+      } catch (err) {
+        setError(storageErrorMessage(err, 'the rulebook'));
+        return;
+      }
+      // Rulebooks are what make the app work offline: ask the browser to keep them.
+      void requestPersistentStorage();
       resetDraft();
       setPasteText('');
       setPasteName('');
