@@ -1,6 +1,6 @@
 # Cartridge status
 
-Last updated: 2026-11-16 (Phase 4).
+Last updated: 2026-11-17 (Phase 5).
 
 ## Phase checklist
 
@@ -9,7 +9,7 @@ Last updated: 2026-11-16 (Phase 4).
 - [x] Phase 2: Cloud compiler and card viewer (one item open: a real compile, see below)
 - [x] Phase 3: Ask engine, router, validators, offline queue (real device and real cloud not yet run)
 - [x] Phase 4: Exam Day, built and tested with the stand-in (the owner's real-device run is still to do)
-- [ ] Phase 5: Versions and proposed rules
+- [x] Phase 5: Versions and proposed rules (the post-approval check has not run on Gemini Nano yet)
 - [ ] Phase 6: Product polish and demo mode
 - [ ] Phase 7: Hardening and submission readiness
 - [ ] Phase 8 (optional, gated): Blueprint canvas
@@ -70,6 +70,18 @@ Last updated: 2026-11-16 (Phase 4).
 - [ ] **The owner runs Exam Day once on a real device; the report must show measuredOn 'device'.**
       Needs Chrome with Gemini Nano and the App Check debug token (the exam and tutor use the cloud).
 - [ ] Prompts and thresholds tuned after that first real run.
+
+### Phase 5 acceptance
+
+- [x] Tests for diff and versioning (`versions.test.ts`, 12 tests; `proposals.test.ts`, 11 tests)
+- [x] Approve creates version N+1 (tested; and in headless Chrome: v1 → v2 with R009, the
+      suggestion marked approved in the same transaction)
+- [x] Restore works (tested; and in headless Chrome: v3 made with the 8 rules of v1, all three
+      versions kept, current = 3, survives a reload)
+- [x] A suggestion whose quote cannot be verified is discarded, and the answer says why
+- [x] Post-approval check: new-rule questions, the user's question, affected questions and a
+      regression sample, on the device (`check.test.ts`, 10 tests, with the stand-in)
+- [ ] The check run on real Gemini Nano, and real cloud-written questions for a new rule
 
 ## Versions in use
 
@@ -265,6 +277,42 @@ zod 4.6.7, motion 14.14.0, idb 8.0.4, minisearch 7.2.0, pdfjs-dist 6.5.438.
     Gemini Nano, so app reports say 'Tested on this device'.
   - Small held-out sets are noisy: 40 questions give 12 held-out, of which about 4 critical and 2
     out of scope for the test rulebook. One wrong critical answer drops it to 75%.
+- **Versions and suggested rules (Phase 5)** (`src/cartridge/versions.ts`, `proposals.ts`,
+  `src/exam/check.ts`, `src/ui/screens/Versions.tsx` at `/versions?id=`):
+  - **Every change is a new version N+1 with parent N; nothing is overwritten or deleted.**
+    Restore makes version N+1 with the rules of the chosen version (and its Exam Day report,
+    because the rules are identical). A version made by approving a rule has no report until Exam
+    Day runs again.
+  - **Rule IDs are never reused:** the next ID counts every ID in every version, so after
+    restoring away R009, the next new rule is R010.
+  - **Checks on a suggested rule, on this device** (beyond the brief's quote check): the rule must
+    parse; its quote (at most 300 characters, cleaned like compile quotes) must verify; every
+    number in its instruction must appear within 1,500 characters of the quote; its quote must not
+    already be a rule's quote (compared without end punctuation). A calculation whose factor is
+    not in the quote is removed. Failures discard the suggestion, and the answer card says why.
+    The same checks run again at approval, against the current version.
+  - **Warnings for the reviewer:** a very similar rule (title similarity of at least 0.8, or one
+    quote contains the other), shown side by side; and **words from the user's question that are
+    not in the rulebook but appear in the rule** (4+ letters, question words ignored). Rules are
+    sent to the cloud when an exam is written, so the review says so, and the post-approval check
+    does not send such a rule to the cloud.
+  - Suggestions are stored (new `proposals` store, IndexedDB version 3; a version 2 database
+    upgraded in Chrome and kept its data), including the user's question, on this device only.
+    Approval saves the version and the decided suggestion in one transaction.
+  - **Review screen:** the question and cloud answer, the diff (version N → N+1), the evidence
+    highlighted in the rulebook ('Verified against the source, page N'), and the tests affected:
+    saved exam questions whose top 5 candidates would include the new rule, with out-of-scope ones
+    marked 'The new rule may cover it'.
+  - **Post-approval check** ('re-run the exam for the changed rules plus a regression subset'):
+    with signal, the cloud writes 3 questions for the new rule (EXAM_PROMPT with 0 out-of-scope
+    questions, public rule text only); they are added to the saved exam with a 70/30 split of
+    their own, so later Exam Days cover the rule. Then Gemini Nano answers: those questions, the
+    user's question (kept `Private`, `runExam` now accepts `fromUser` items), the affected exam
+    questions, and 8 others chosen with a fixed seed. Out-of-scope questions the device now
+    answers with the new rule are listed with advice to write a new exam. The result is stored on
+    the suggestion and is not a report card.
+  - The version history shows each version's changelog line, its report badge, and a diff against
+    its parent.
 - **Receipt counters** in localStorage: on this device, from the cloud, waited for signal,
   unanswered. Bytes for questions come from the egress log (ANSWER calls).
 - **Data model addition:** `Cartridge.sourceName` and `Cartridge.sourceLicence` (optional), so the
@@ -308,6 +356,13 @@ zod 4.6.7, motion 14.14.0, idb 8.0.4, minisearch 7.2.0, pdfjs-dist 6.5.438.
   "openly licensed or public domain" rule as written. Owner decision pending.
 
 ## Known risks
+
+- Out-of-scope exam questions that an approved rule now covers keep their 'not covered' label
+  until a new exam is written, so later Exam Days would grade a correct answer as wrong. The check
+  lists them and says to write a new exam; nothing relabels them automatically.
+- The 'words from your question' warning is a heuristic: it misses private words that also occur
+  in the rulebook, and it flags useful plain words (for example 'latrines') that the rulebook does
+  not use.
 
 - **No offline app shell yet.** There is no service worker, so a reload with the network blocked
   fails. Loading a rulebook works offline only once the page and the pdf.js chunks are loaded.

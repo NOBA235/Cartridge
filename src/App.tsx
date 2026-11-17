@@ -10,6 +10,7 @@ import { CartridgeView } from '@/ui/screens/CartridgeView';
 import { DevPage } from '@/ui/screens/DevPage';
 import { ExamDay } from '@/ui/screens/ExamDay';
 import { LoadRulebook } from '@/ui/screens/LoadRulebook';
+import { Versions } from '@/ui/screens/Versions';
 import { Welcome } from '@/ui/screens/Welcome';
 
 const NAV: ReadonlyArray<{ path: AppPath; label: string }> = [
@@ -23,6 +24,7 @@ function Screen({ path }: { path: AppPath }) {
   if (path === '/dev') return <DevPage />;
   if (path === '/load') return <LoadRulebook />;
   if (path === '/cartridge') return <CartridgeView />;
+  if (path === '/versions') return <Versions />;
   if (path === '/ask') return <Ask />;
   if (path === '/exam') return <ExamDay />;
   return <Welcome />;

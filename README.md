@@ -5,7 +5,7 @@ Built for the #BuildHybridAI 2026 hackathon with Firebase AI Logic (cloud Gemini
 
 **Public standards go to the cloud once. Your diagram never does.**
 
-> Status: Phase 4 of 8 (Exam Day: test the cartridge on this device, tutor the weak rules, check on held-out questions). See [docs/STATUS.md](docs/STATUS.md).
+> Status: Phase 5 of 8 (versions, and rules the cloud suggests that you review and approve). See [docs/STATUS.md](docs/STATUS.md).
 > Reference tool, not an official authority.
 
 ## Privacy
@@ -58,14 +58,16 @@ out of app code.
 
 ## Where Firebase AI Logic is called
 
-| What                                                             | File                                                                                 | Mode                              |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------ | --------------------------------- |
-| App, App Check, `getAI(GoogleAIBackend)`                         | [src/ai/firebase.ts](src/ai/firebase.ts)                                             |                                   |
-| Cloud tasks (`cloudJson`)                                        | [src/ai/cloud.ts](src/ai/cloud.ts)                                                   | `InferenceMode.ONLY_IN_CLOUD`     |
-| Making a cartridge (per section, plus one repair call if needed) | [src/cartridge/compile.ts](src/cartridge/compile.ts)                                 | through `cloudJson`               |
-| Exam Day: writing the exam, and the tutor                        | [src/exam/generate.ts](src/exam/generate.ts), [src/exam/tutor.ts](src/exam/tutor.ts) | through `cloudJson`               |
-| Exam Day: answering the questions                                | [src/exam/run.ts](src/exam/run.ts)                                                   | Gemini Nano only, never the cloud |
-| Device rule selection (Gemini Nano)                              | [src/ai/firebaseDevice.ts](src/ai/firebaseDevice.ts)                                 | `InferenceMode.ONLY_ON_DEVICE`    |
+| What                                                             | File                                                                                 | Mode                                   |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------- |
+| App, App Check, `getAI(GoogleAIBackend)`                         | [src/ai/firebase.ts](src/ai/firebase.ts)                                             |                                        |
+| Cloud tasks (`cloudJson`)                                        | [src/ai/cloud.ts](src/ai/cloud.ts)                                                   | `InferenceMode.ONLY_IN_CLOUD`          |
+| Making a cartridge (per section, plus one repair call if needed) | [src/cartridge/compile.ts](src/cartridge/compile.ts)                                 | through `cloudJson`                    |
+| Exam Day: writing the exam, and the tutor                        | [src/exam/generate.ts](src/exam/generate.ts), [src/exam/tutor.ts](src/exam/tutor.ts) | through `cloudJson`                    |
+| Exam Day: answering the questions                                | [src/exam/run.ts](src/exam/run.ts)                                                   | Gemini Nano only, never the cloud      |
+| After approving a suggested rule: test questions for it          | [src/exam/check.ts](src/exam/check.ts)                                               | through `cloudJson` (public rule text) |
+| After approving a suggested rule: answering the check            | [src/exam/check.ts](src/exam/check.ts)                                               | Gemini Nano only, never the cloud      |
+| Device rule selection (Gemini Nano)                              | [src/ai/firebaseDevice.ts](src/ai/firebaseDevice.ts)                                 | `InferenceMode.ONLY_ON_DEVICE`         |
 
 The raw Chrome `LanguageModel` API is never called (ESLint blocks it).
 

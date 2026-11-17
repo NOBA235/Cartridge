@@ -7,7 +7,12 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import { describeCalc } from '@/cartridge/calc';
 import { exportCartridgeJson, exportFileName } from '@/cartridge/cartridgeIO';
 import type { SourceDoc } from '@/cartridge/source';
-import { cartridgesStore, sourcesStore, type CartridgeRecord } from '@/cartridge/store';
+import {
+  cartridgesStore,
+  proposalsStore,
+  sourcesStore,
+  type CartridgeRecord,
+} from '@/cartridge/store';
 import type { Cartridge, Rule, Severity } from '@/cartridge/types';
 import { prepareSource, verifyQuote, type PreparedSource } from '@/cartridge/verifyQuote';
 import { cn } from '@/lib/utils';
@@ -170,6 +175,18 @@ export function CartridgeView() {
   const [loaded, setLoaded] = useState<Loaded>({ state: 'loading' });
   const [query, setQuery] = useState('');
   const [hidden, setHidden] = useState<ReadonlySet<Severity>>(new Set());
+  const [pendingSuggestions, setPendingSuggestions] = useState(0);
+
+  useEffect(() => {
+    let live = true;
+    proposalsStore.list(id).then(
+      (list) => live && setPendingSuggestions(list.filter((p) => p.status === 'pending').length),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [id]);
 
   useEffect(() => {
     let live = true;
@@ -255,6 +272,13 @@ export function CartridgeView() {
             )}
           </div>
           <div className="flex flex-wrap gap-2">
+            <a
+              href={href('/versions', { id: cartridge.id })}
+              onClick={linkHandler('/versions', { id: cartridge.id })}
+              className={buttonVariants({ size: 'sm', variant: 'outline' })}
+            >
+              Versions{pendingSuggestions > 0 ? ` (${pendingSuggestions} suggested)` : ''}
+            </a>
             <a
               href={href('/exam', { id: cartridge.id })}
               onClick={linkHandler('/exam', { id: cartridge.id })}

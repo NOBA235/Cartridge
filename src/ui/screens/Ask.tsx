@@ -21,6 +21,7 @@ import {
   askHistory,
   loadAskContext,
   offlineQueue,
+  rememberProposal,
   type LoadedCartridge,
 } from '@/cartridge/askSession';
 import { config } from '@/config';
@@ -167,7 +168,10 @@ function AskWith({ loaded }: { loaded: LoadedCartridge }) {
         approve,
         enqueue: (item) => offlineQueue.enqueue(item),
       });
-      askHistory.add(answer, loaded.cartridge.id);
+      askHistory.add(
+        await rememberProposal(answer, loaded.cartridge.id, loaded.cartridge.version),
+        loaded.cartridge.id,
+      );
       setQuestion('');
     } finally {
       setBusy(false);
@@ -236,6 +240,7 @@ function AskWith({ loaded }: { loaded: LoadedCartridge }) {
             answer={h.answer}
             rule={h.answer.ruleId ? rulesById.get(h.answer.ruleId) : undefined}
             source={loaded.source}
+            cartridgeId={h.cartridgeId}
           />
         ))}
       </div>

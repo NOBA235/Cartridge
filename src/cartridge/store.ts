@@ -123,6 +123,17 @@ export const cartridgesStore = {
     ]);
     return record;
   },
+  /** Saves a version, makes it current, and records the decided suggestion, in one transaction. */
+  async saveVersionWithProposal(c: Cartridge, sourceId: string, p: ProposalRecord): Promise<void> {
+    const d = await db();
+    const tx = d.transaction(['cartridges', 'versions', 'proposals'], 'readwrite');
+    await Promise.all([
+      tx.objectStore('versions').put(c),
+      tx.objectStore('cartridges').put(cartridgeRecord(c, sourceId)),
+      tx.objectStore('proposals').put(ProposalRecordSchema.parse(p)),
+      tx.done,
+    ]);
+  },
   /** Newest first. */
   async list(): Promise<CartridgeRecord[]> {
     const all = await (await db()).getAll('cartridges');

@@ -4,9 +4,11 @@
  * quote check passed on this device.
  */
 import type { Answer } from '@/cartridge/answer';
+import type { CloudAnswer } from '@/cartridge/ask';
 import type { SourceText } from '@/cartridge/source';
 import type { Rule } from '@/cartridge/types';
 import { RouteBadge } from '@/ui/components/RouteBadge';
+import { href, linkHandler } from '@/ui/router';
 import { SeverityChip } from '@/ui/components/SeverityChip';
 import { SourceContext } from '@/ui/components/SourceContext';
 
@@ -39,10 +41,12 @@ export function AnswerCard({
   answer: a,
   rule,
   source,
+  cartridgeId,
 }: {
-  answer: Answer;
+  answer: CloudAnswer;
   rule?: Rule;
   source?: SourceText;
+  cartridgeId?: string;
 }) {
   const route = a.route;
   const quoteOk =
@@ -112,6 +116,29 @@ export function AnswerCard({
       {a.reason && a.status === 'verified' && a.route === 'IN_CLOUD' && (
         <p className="text-xs text-muted-foreground">
           Sent to the cloud because: {REASON[a.reason]}
+        </p>
+      )}
+
+      {a.proposal && (
+        <div className="flex flex-col gap-1 rounded-lg border border-primary/40 bg-primary/5 p-3 text-sm">
+          <p className="font-medium">The cloud suggests a new rule: {a.proposal.draft.title}</p>
+          <p className="text-xs text-muted-foreground">
+            Its quote was found in the rulebook. It is not in your cartridge unless you approve it.
+          </p>
+          {a.proposalId && cartridgeId && (
+            <a
+              href={href('/versions', { id: cartridgeId })}
+              onClick={linkHandler('/versions', { id: cartridgeId })}
+              className="self-start text-sm underline underline-offset-4"
+            >
+              Review the suggestion
+            </a>
+          )}
+        </div>
+      )}
+      {a.proposalDiscarded && (
+        <p className="text-xs text-muted-foreground">
+          The cloud suggested a new rule, but it was discarded. {a.proposalDiscarded}
         </p>
       )}
     </article>
