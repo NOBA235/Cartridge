@@ -1,14 +1,9 @@
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useEffect, useRef } from 'react';
 import { Button } from '@/ui/primitives/button';
 import type { EgressEntry } from '@/telemetry/egress';
+import { formatBytes } from '@/telemetry/summary';
 import { useEgressLog, useEgressPersistence } from '@/ui/hooks/useStores';
-
-function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / 1024 / 1024).toFixed(2)} MB`;
-}
 
 const KIND_LABEL: Record<EgressEntry['kind'], string> = {
   'cloud-call': 'Sent to the cloud',
@@ -67,13 +62,19 @@ export function EgressPanel({ open, onClose }: { open: boolean; onClose: () => v
   const persistence = useEgressPersistence();
   const total = entries.reduce((s, e) => s + e.bytesSent, 0);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const still = useReducedMotion() ?? false;
 
   useEffect(() => {
     if (!open) return;
+    // Return focus to whatever opened the panel when it closes.
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     closeRef.current?.focus();
     const onKey = (ev: KeyboardEvent) => ev.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      if (opener?.isConnected) opener.focus();
+    };
   }, [open, onClose]);
 
   return (
@@ -85,9 +86,9 @@ export function EgressPanel({ open, onClose }: { open: boolean; onClose: () => v
           aria-modal="false"
           aria-labelledby="egress-title"
           className="fixed inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l bg-card shadow-xl"
-          initial={{ x: '100%' }}
+          initial={still ? false : { x: '100%' }}
           animate={{ x: 0 }}
-          exit={{ x: '100%' }}
+          exit={still ? { opacity: 0 } : { x: '100%' }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
         >
           <header className="flex items-center justify-between border-b p-4">

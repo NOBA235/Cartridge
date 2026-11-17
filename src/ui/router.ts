@@ -1,7 +1,8 @@
 /** Tiny pathname router: no dependency, works with the browser's back button. */
 import { useMemo, useSyncExternalStore, type MouseEvent } from 'react';
 
-export type AppPath = '/' | '/load' | '/cartridge' | '/versions' | '/exam' | '/ask' | '/dev';
+export type AppPath =
+  '/' | '/load' | '/cartridge' | '/versions' | '/exam' | '/ask' | '/report' | '/dev';
 
 const KNOWN: readonly AppPath[] = [
   '/',
@@ -10,6 +11,7 @@ const KNOWN: readonly AppPath[] = [
   '/versions',
   '/exam',
   '/ask',
+  '/report',
   '/dev',
 ];
 

@@ -86,10 +86,12 @@ export function ExamReportCard({
   report,
   rules,
   onOverride,
+  title = 'Exam Day result',
 }: {
   report: ExamReport;
   rules: readonly Rule[];
   onOverride?: () => Promise<void>;
+  title?: string;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -106,7 +108,7 @@ export function ExamReportCard({
     >
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="report-title" className="text-lg font-semibold">
-          Report card
+          {title}
         </h2>
         <ReadyBadge report={report} />
       </header>

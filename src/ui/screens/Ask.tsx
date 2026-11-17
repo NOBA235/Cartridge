@@ -6,7 +6,6 @@
  */
 import {
   useCallback,
-  useEffect,
   useId,
   useMemo,
   useRef,
@@ -19,7 +18,6 @@ import { deviceSessions } from '@/ai/deviceSessions';
 import { askQuestion, type ApprovalRequest } from '@/cartridge/ask';
 import {
   askHistory,
-  loadAskContext,
   offlineQueue,
   rememberProposal,
   type LoadedCartridge,
@@ -29,22 +27,20 @@ import { asPrivate, type Public } from '@/privacy';
 import { connectivity } from '@/queue/connectivity';
 import type { QueueView } from '@/queue/offlineQueue';
 import { questionBytes, receipt } from '@/telemetry/receipt';
+import { formatBytes } from '@/telemetry/summary';
 import { AnswerCard } from '@/ui/components/AnswerCard';
 import { CloudSetting } from '@/ui/components/CloudSetting';
 import { DeclassifyDialog, type DeclassifyRequest } from '@/ui/components/DeclassifyDialog';
 import { DevicePanel, useDeviceState } from '@/ui/components/DevicePanel';
 import { NoSignalSwitch, useConnectivity } from '@/ui/components/NoSignalSwitch';
-import { useCartridges } from '@/ui/hooks/useCartridges';
+import { useChosenCartridgeId } from '@/ui/activeCartridge';
+import { useCartridges, useLoadedCartridge } from '@/ui/hooks/useCartridges';
 import { useEgressLog, useSettings } from '@/ui/hooks/useStores';
 import { Button, buttonVariants } from '@/ui/primitives/button';
 import { linkHandler, navigate, useLocation } from '@/ui/router';
 import { inputClass } from '@/ui/styles';
 
 type Pending = { request: DeclassifyRequest; resolve: (v: Public<string> | null) => void };
-
-function formatBytes(n: number): string {
-  return n < 1024 ? `${n} bytes` : `${(n / 1024).toFixed(1)} KB`;
-}
 
 function Receipt() {
   const r = useSyncExternalStore(receipt.subscribe, receipt.get);
@@ -266,21 +262,8 @@ export function Ask() {
   const { params } = useLocation();
   const selectId = useId();
   const { records, error } = useCartridges();
-  const requested = params.get('id');
-  const id = requested ?? records?.[0]?.id ?? null;
-  const [loaded, setLoaded] = useState<LoadedCartridge | null | 'missing'>(null);
-
-  useEffect(() => {
-    if (!id) return;
-    let live = true;
-    loadAskContext(id).then(
-      (l) => live && setLoaded(l ?? 'missing'),
-      () => live && setLoaded('missing'),
-    );
-    return () => {
-      live = false;
-    };
-  }, [id]);
+  const id = useChosenCartridgeId(records, params.get('id'));
+  const loaded = useLoadedCartridge(id);
 
   const header = (
     <header>

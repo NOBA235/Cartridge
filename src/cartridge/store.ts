@@ -12,6 +12,7 @@
  */
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import { ExamSetSchema, type ExamSet } from '@/exam/types';
+import { createStore } from '@/lib/store';
 import type { QueueItem, QueueStorage } from '@/queue/offlineQueue';
 import type { EgressEntry } from '@/telemetry/egress';
 import { ProposalRecordSchema, type ProposalRecord } from './proposals';
@@ -69,6 +70,16 @@ export function openCartridgeDB(name = DB_NAME): Promise<IDBPDatabase<CartridgeD
   });
 }
 
+/**
+ * Bumped after every write to rulebooks or cartridges, so screens that show
+ * them (header slot, Welcome, lists) refresh without polling.
+ */
+const changes = createStore(0);
+export const dataChanges = { subscribe: changes.subscribe, get: changes.get };
+function changed(): void {
+  changes.set((n) => n + 1);
+}
+
 let dbPromise: Promise<IDBPDatabase<CartridgeDB>> | undefined;
 
 /** Shared connection. Rejects where IndexedDB is unavailable (some private modes). */
@@ -85,6 +96,7 @@ export function db(): Promise<IDBPDatabase<CartridgeDB>> {
 export const sourcesStore = {
   async put(doc: SourceDoc): Promise<void> {
     await (await db()).put('sources', doc);
+    changed();
   },
   async get(id: string): Promise<SourceDoc | undefined> {
     return (await db()).get('sources', id);
@@ -95,6 +107,7 @@ export const sourcesStore = {
   },
   async delete(id: string): Promise<void> {
     await (await db()).delete('sources', id);
+    changed();
   },
 };
 
@@ -121,6 +134,7 @@ export const cartridgesStore = {
       tx.objectStore('cartridges').put(record),
       tx.done,
     ]);
+    changed();
     return record;
   },
   /** Saves a version, makes it current, and records the decided suggestion, in one transaction. */
@@ -133,6 +147,7 @@ export const cartridgesStore = {
       tx.objectStore('proposals').put(ProposalRecordSchema.parse(p)),
       tx.done,
     ]);
+    changed();
   },
   /** Newest first. */
   async list(): Promise<CartridgeRecord[]> {
@@ -171,6 +186,7 @@ export const cartridgesStore = {
       tx.objectStore('exams').delete(id),
       tx.done,
     ]);
+    changed();
   },
 };
 
@@ -178,6 +194,7 @@ export const cartridgesStore = {
 export const proposalsStore = {
   async put(p: ProposalRecord): Promise<void> {
     await (await db()).put('proposals', ProposalRecordSchema.parse(p));
+    changed();
   },
   async get(id: string): Promise<ProposalRecord | undefined> {
     const parsed = ProposalRecordSchema.safeParse(await (await db()).get('proposals', id));

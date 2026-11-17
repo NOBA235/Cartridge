@@ -5,6 +5,7 @@
  */
 import { useEffect, useId, useMemo, useState } from 'react';
 import { describeCalc } from '@/cartridge/calc';
+import { activeCartridge } from '@/cartridge/active';
 import { exportCartridgeJson, exportFileName } from '@/cartridge/cartridgeIO';
 import type { SourceDoc } from '@/cartridge/source';
 import {
@@ -16,10 +17,13 @@ import {
 import type { Cartridge, Rule, Severity } from '@/cartridge/types';
 import { prepareSource, verifyQuote, type PreparedSource } from '@/cartridge/verifyQuote';
 import { cn } from '@/lib/utils';
+import { useChosenCartridgeId } from '@/ui/activeCartridge';
 import { ReadyBadge } from '@/ui/components/ExamReportCard';
 import { SEVERITIES, SeverityChip } from '@/ui/components/SeverityChip';
 import { SourceContext } from '@/ui/components/SourceContext';
+import { NoCartridge } from '@/ui/components/NoCartridge';
 import { downloadText } from '@/ui/download';
+import { useCartridges, useDataVersion } from '@/ui/hooks/useCartridges';
 import { Button, buttonVariants } from '@/ui/primitives/button';
 import { href, linkHandler, useLocation } from '@/ui/router';
 import { inputClass } from '@/ui/styles';
@@ -170,14 +174,17 @@ function RuleCard({
 
 export function CartridgeView() {
   const { params } = useLocation();
-  const id = params.get('id') ?? '';
+  const { records } = useCartridges();
+  const id = useChosenCartridgeId(records, params.get('id'));
   const searchId = useId();
   const [loaded, setLoaded] = useState<Loaded>({ state: 'loading' });
   const [query, setQuery] = useState('');
   const [hidden, setHidden] = useState<ReadonlySet<Severity>>(new Set());
   const [pendingSuggestions, setPendingSuggestions] = useState(0);
+  const data = useDataVersion();
 
   useEffect(() => {
+    if (!id) return;
     let live = true;
     proposalsStore.list(id).then(
       (list) => live && setPendingSuggestions(list.filter((p) => p.status === 'pending').length),
@@ -186,24 +193,37 @@ export function CartridgeView() {
     return () => {
       live = false;
     };
-  }, [id]);
+  }, [id, data]);
 
   useEffect(() => {
+    if (!id) return;
     let live = true;
     loadCartridge(id).then(
-      (l) => live && setLoaded(l),
+      (l) => {
+        if (!live) return;
+        setLoaded(l);
+        if (l.state === 'ready') activeCartridge.set(id);
+      },
       (e: unknown) =>
         live && setLoaded({ state: 'error', message: e instanceof Error ? e.message : String(e) }),
     );
     return () => {
       live = false;
     };
-  }, [id]);
+  }, [id, data]);
 
   const source = loaded.state === 'ready' ? loaded.source : undefined;
   const prepared = useMemo(() => (source ? prepareSource(source) : undefined), [source]);
 
-  if (loaded.state === 'loading')
+  if (!id && records !== null) {
+    return (
+      <NoCartridge>
+        <h1 className="text-2xl font-semibold tracking-tight">The cards</h1>
+      </NoCartridge>
+    );
+  }
+  const stale = loaded.state === 'ready' && loaded.record.id !== id;
+  if (!id || loaded.state === 'loading' || stale)
     return <p className="py-10 text-sm text-muted-foreground">Loading…</p>;
   if (loaded.state !== 'ready') {
     return (

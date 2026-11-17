@@ -16,6 +16,7 @@ import { ExamReportCard } from '@/ui/components/ExamReportCard';
 import { useConnectivity } from '@/ui/components/NoSignalSwitch';
 import { RuleDots } from '@/ui/components/RuleDots';
 import { ScoreRing } from '@/ui/components/ScoreRing';
+import { useChosenCartridgeId } from '@/ui/activeCartridge';
 import { useCartridges, useLoadedCartridge } from '@/ui/hooks/useCartridges';
 import { Button, buttonVariants } from '@/ui/primitives/button';
 import { href, linkHandler, navigate, useLocation } from '@/ui/router';
@@ -296,7 +297,7 @@ export function ExamDay() {
   const selectId = useId();
   const [refresh, setRefresh] = useState(0);
   const { records, error } = useCartridges(refresh);
-  const id = params.get('id') ?? records?.[0]?.id ?? null;
+  const id = useChosenCartridgeId(records, params.get('id'));
   const loaded = useLoadedCartridge(id, refresh);
 
   const header = (

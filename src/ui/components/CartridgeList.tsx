@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import { exportCartridgeJson, exportFileName, importCartridgeJson } from '@/cartridge/cartridgeIO';
 import { compileJobs } from '@/cartridge/compileJob';
+import { activeCartridge } from '@/cartridge/active';
 import { cartridgesStore, sourcesStore, type CartridgeRecord } from '@/cartridge/store';
 import { downloadText } from '@/ui/download';
 import { Button, buttonVariants } from '@/ui/primitives/button';
@@ -121,6 +122,7 @@ export function CartridgeList() {
       const sources = await sourcesStore.list();
       const source = sources.find((s) => s.hash === cartridge.sourceHash);
       await cartridgesStore.saveVersion(cartridge, source?.id ?? '');
+      activeCartridge.set(cartridge.id);
       setNotice(
         source
           ? `Imported '${cartridge.name}'. Its rulebook is on this device, so its quotes can be checked.`

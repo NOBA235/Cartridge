@@ -22,10 +22,13 @@ import { config } from '@/config';
 import { selectCheckItems, type CheckGroup } from '@/exam/check';
 import { checkJobs, type CheckJob } from '@/exam/checkJob';
 import type { ExamSet } from '@/exam/types';
+import { useChosenCartridgeId } from '@/ui/activeCartridge';
 import { DiffView } from '@/ui/components/DiffView';
 import { ReadyBadge } from '@/ui/components/ExamReportCard';
+import { NoCartridge } from '@/ui/components/NoCartridge';
 import { useConnectivity } from '@/ui/components/NoSignalSwitch';
 import { SourceContext } from '@/ui/components/SourceContext';
+import { useCartridges, useDataVersion } from '@/ui/hooks/useCartridges';
 import { Button, buttonVariants } from '@/ui/primitives/button';
 import { href, linkHandler, useLocation } from '@/ui/router';
 
@@ -517,16 +520,19 @@ function VersionItem({
 
 export function Versions() {
   const { params } = useLocation();
-  const id = params.get('id') ?? '';
+  const { records } = useCartridges();
+  const id = useChosenCartridgeId(records, params.get('id'));
   const [data, setData] = useState<Data | 'missing' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refresh, setRefresh] = useState(0);
   const reload = useCallback(() => setRefresh((n) => n + 1), []);
+  const changes = useDataVersion();
   // Reload when a check finishes, so its saved result shows after navigation too.
   const jobs = useSyncExternalStore(checkJobs.subscribe, checkJobs.get);
   const doneChecks = Object.values(jobs).filter((j) => j.status === 'done').length;
 
   useEffect(() => {
+    if (!id) return;
     let live = true;
     loadData(id).then(
       (d) => live && setData(d),
@@ -535,8 +541,15 @@ export function Versions() {
     return () => {
       live = false;
     };
-  }, [id, refresh, doneChecks]);
+  }, [id, refresh, doneChecks, changes]);
 
+  if (!id && records !== null) {
+    return (
+      <NoCartridge>
+        <h1 className="text-2xl font-semibold tracking-tight">Versions and suggestions</h1>
+      </NoCartridge>
+    );
+  }
   if (error) {
     return (
       <section className="mx-auto max-w-3xl py-10">
@@ -546,7 +559,8 @@ export function Versions() {
       </section>
     );
   }
-  if (data === null) return <p className="py-10 text-sm text-muted-foreground">Loading…</p>;
+  if (data === null || (data !== 'missing' && data.loaded.cartridge.id !== id))
+    return <p className="py-10 text-sm text-muted-foreground">Loading…</p>;
   if (data === 'missing') {
     return (
       <section className="mx-auto flex max-w-3xl flex-col gap-4 py-10">

@@ -13,6 +13,7 @@ import {
   type DroppedRule,
   type SectionFailure,
 } from './compile';
+import { activeCartridge } from './active';
 import type { SourceDoc } from './source';
 import { cartridgesStore } from './store';
 
@@ -99,6 +100,7 @@ export const compileJobs = {
     })
       .then(async (res) => {
         await cartridgesStore.saveVersion(res.cartridge, source.id);
+        activeCartridge.set(res.cartridge.id);
         update(source.id, {
           status: 'done',
           cartridgeId: res.cartridge.id,
