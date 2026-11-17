@@ -267,7 +267,10 @@ export async function compileCartridge(
     } catch (e) {
       if (e instanceof CloudError && e.code === 'OFFLINE')
         fail('OFFLINE', 'No signal. The cartridge was not finished.');
+      // These would fail the same way for every remaining section.
       if (e instanceof CloudError && e.code === 'NOT_CONFIGURED') fail('CLOUD', e.message);
+      if (e instanceof CloudError && (e.code === 'QUOTA' || e.code === 'REFUSED'))
+        fail('CLOUD', `Stopped at section ${sectionNo} of ${chunks.length}: ${e.message}`);
       const message = (e as Error).message;
       // If nothing has worked yet, this is most likely a setup problem: stop instead of
       // repeating a failing call for every section.
@@ -347,6 +350,8 @@ export async function compileCartridge(
     } catch (e) {
       if (e instanceof CloudError && e.code === 'OFFLINE')
         fail('OFFLINE', 'No signal. The cartridge was not finished.');
+      if (e instanceof CloudError && (e.code === 'QUOTA' || e.code === 'REFUSED'))
+        fail('CLOUD', `Stopped at section ${sectionNo} of ${chunks.length}: ${e.message}`);
       repairError = (e as Error).message;
     }
     if (stopped()) fail('STOPPED', 'Stopped.');

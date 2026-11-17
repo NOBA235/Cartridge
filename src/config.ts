@@ -21,6 +21,14 @@ export const config = {
   /** Retries after the first attempt, so 3 attempts at most. */
   cloudMaxRetries: 2,
   /**
+   * Wait before retry N (1-based) after a usage-limit (429) or server (5xx)
+   * error. A server that asks for a longer wait than cloudMaxWaitMs is not retried.
+   */
+  cloudBackoffMs: [2_000, 8_000],
+  cloudMaxWaitMs: 30_000,
+  /** 'Prepare this device' gives up waiting when the download reports no progress for this long. */
+  deviceStallMs: 120_000,
+  /**
    * On-device requests are limited to about 9,216 tokens. We cap the prompt
    * well below that (roughly 4 characters per token) so a cartridge can never
    * be pasted in whole.
@@ -71,5 +79,9 @@ export const config = {
     /** Title word similarity (0 to 1) at or above which two rules count as duplicates. */
     titleSimilarity: 0.8,
     maxQuoteChars: 300,
+    /** Above this many sections, the user confirms the number of cloud requests first. */
+    confirmAboveSections: 20,
   },
+  /** Largest cartridge JSON file accepted for import. */
+  maxImportBytes: 20 * 1024 * 1024,
 } as const;

@@ -399,6 +399,22 @@ describe('compileCartridge', () => {
     ]);
   });
 
+  it('stops on a usage limit or a refusal after a section succeeded, with nothing kept', async () => {
+    for (const code of ['QUOTA', 'REFUSED'] as const) {
+      const { cloud, calls } = fakeCloud((task, prompt) => {
+        if (prompt.includes('Sanitation')) return new CloudError('Limit reached.', code, 3);
+        return bySection({ water: [rule()], hygiene: [HANDWASH] })(task, prompt, 0);
+      });
+      await expect(
+        compileCartridge(await source(), { cloud, options: OPTIONS }),
+      ).rejects.toMatchObject({
+        code: 'CLOUD',
+        message: expect.stringMatching(/^Stopped at section 2 of \d+: Limit reached\.$/),
+      });
+      expect(calls.some((c) => c.prompt.value.includes('Hygiene'))).toBe(false);
+    }
+  });
+
   it('records a section that fails after another succeeded, and carries on', async () => {
     const { cloud } = fakeCloud((task, prompt) => {
       if (prompt.includes('Sanitation')) return new CloudError('quota exceeded', 'FAILED', 3);
