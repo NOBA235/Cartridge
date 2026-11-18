@@ -1,5 +1,5 @@
 import { MotionConfig } from 'motion/react';
-import { useSyncExternalStore } from 'react';
+import { lazy, Suspense, useSyncExternalStore } from 'react';
 import { cn } from '@/lib/utils';
 import { offlineShell } from '@/offline/register';
 import { CartridgeSlot } from '@/ui/components/CartridgeSlot';
@@ -24,9 +24,22 @@ const NAV: ReadonlyArray<{ path: AppPath; label: string }> = [
   { path: '/exam', label: 'Exam Day' },
   { path: '/ask', label: 'Ask' },
   { path: '/report', label: 'Report card' },
+  { path: '/blueprint', label: 'Blueprint' },
 ];
 
+// Excalidraw is large; it loads only when the Blueprint canvas opens.
+const Blueprint = lazy(() => import('@/ui/screens/Blueprint'));
+
 function Screen({ path }: { path: AppPath }) {
+  if (path === '/blueprint') {
+    return (
+      <Suspense
+        fallback={<p className="py-10 text-sm text-muted-foreground">Loading the canvas…</p>}
+      >
+        <Blueprint />
+      </Suspense>
+    );
+  }
   if (path === '/dev') return <DevPage />;
   if (path === '/load') return <LoadRulebook />;
   if (path === '/cartridge') return <CartridgeView />;

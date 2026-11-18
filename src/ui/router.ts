@@ -10,6 +10,7 @@ export type AppPath =
   | '/ask'
   | '/report'
   | '/connections'
+  | '/blueprint'
   | '/dev';
 
 const KNOWN: readonly AppPath[] = [
@@ -21,6 +22,7 @@ const KNOWN: readonly AppPath[] = [
   '/ask',
   '/report',
   '/connections',
+  '/blueprint',
   '/dev',
 ];
 

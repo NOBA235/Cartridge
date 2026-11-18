@@ -40,6 +40,7 @@ cartridge**, press **Prepare this device** in the header to download Gemini Nano
 | Signal check before sending queued items  | Google connectivity URL                         | An empty `HEAD` request                                                                                                        |
 | Connection test: draft the connections    | Cloud, when you press Draft                     | The public rules (titles, conditions, exceptions, severity), no quotes                                                         |
 | Connection test: run it                   | This device (Gemini Nano), never the cloud      | Nothing                                                                                                                        |
+| Blueprint canvas: checking connections    | This device (Gemini Nano), never the cloud      | Nothing                                                                                                                        |
 | Developer page (`/dev`) test buttons      | Cloud                                           | A fixed test prompt                                                                                                            |
 | Opening the app                           | The app's own host, then this device            | Requests for the app's own files; after the first visit they are saved on the device                                           |
 
@@ -70,6 +71,30 @@ device** panel.
 5. **Versions.** When the cloud answers a question the cartridge missed, it may suggest a rule.
    The suggestion is kept only if its quote is in the rulebook. You review the change, approve it
    as a new version (nothing is ever overwritten), and the device re-runs the affected questions.
+
+## Blueprint canvas
+
+The **Blueprint** screen (`/blueprint`) is a drawing surface ([Excalidraw](https://github.com/excalidraw/excalidraw))
+for mapping a system or a site. Draw boxes, name them, and connect them with arrows; or start
+from one of three templates. Every connection is checked against the cartridge on this device,
+600 ms after drawing pauses, and only new or changed connections are checked again.
+
+- **Nothing on the canvas leaves the device.** Box and arrow labels are `Private` values: they go
+  to Gemini Nano on this device and nowhere else. The canvas makes no cloud calls, its header
+  shows "Diagram bytes sent: 0" read from the egress log, and the diagram is saved in this browser
+  only. Excalidraw's AI features and embeds are switched off, and its fonts are served by this
+  app (`/fonts/`), never from a CDN.
+- **How a connection is judged:** the same evaluator as the connection test (search for up to 5
+  rules, Gemini Nano reports facts, code decides; the rule must be a candidate and its quote must
+  verify). The rule title, instruction, exception and quote shown in the inspector come from the
+  rule, never from the model.
+- **Advisory mode** until the connection test has passed on this device with these rules: a
+  possible violation is amber ("Possible violation, review R005"), compliant connections show
+  "Not checked", and nothing is green. **Verdict mode** after a pass: red with a badge such as
+  `[R005 CRITICAL]`, green for compliant and `[R004 exception]`. In both modes, a connection no
+  rule covers is dashed grey ("Not covered") and an uncertain one is amber ("Review R005").
+- Arrows attached at one end or none are not checked, with a hint to attach both ends.
+- These are advisory checks against the loaded rules, not a security or legal audit.
 
 ## Connection test (before the Blueprint canvas)
 
