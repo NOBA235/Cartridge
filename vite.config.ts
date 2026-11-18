@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
-import { buildServiceWorker, precacheList } from './src/offline/serviceWorker';
+import { buildServiceWorker, precacheList } from './src/offline/serviceWorker.ts';
 
 /** Writes dist/sw.js with the list of built files (see src/offline/serviceWorker.ts). */
 function offlineShell(): Plugin {

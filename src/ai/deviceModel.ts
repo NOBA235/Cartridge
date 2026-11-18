@@ -43,6 +43,29 @@ export interface DeviceModel {
   selectRule(input: SelectRuleInput): Promise<DeviceSelection>;
 }
 
+export interface EdgeFactsInput {
+  /** One connection as plain text. Diagram labels are Private; it never leaves the device here. */
+  edge: Classified<string>;
+  candidates: readonly Rule[];
+}
+
+/** Facts about one connection, as reported by the device. matchedRuleId is null for none. */
+export interface DeviceEdgeFacts {
+  matchedRuleId: string | null;
+  triggersWhenCondition: boolean;
+  matchesException: boolean;
+  matchedExceptionText: string | null;
+  outOfScope: boolean;
+  source: DeviceSource;
+}
+
+/** The device model for connections: reports facts, never a verdict. */
+export interface EdgeDeviceModel {
+  readonly kind: 'firebase' | 'mock';
+  prepare(onProgress: (fraction: number) => void): Promise<DeviceStatus>;
+  reportFacts(input: EdgeFactsInput): Promise<DeviceEdgeFacts>;
+}
+
 export type DeviceErrorCode =
   'UNAVAILABLE' | 'NOT_PREPARED' | 'BAD_OUTPUT' | 'PROMPT_TOO_LONG' | 'RAN_IN_CLOUD' | 'FAILED';
 

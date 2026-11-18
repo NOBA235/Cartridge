@@ -24,13 +24,21 @@ import { reveal } from '@/privacy';
 import { egressLog, utf8Bytes } from '@/telemetry/egress';
 import {
   DeviceError,
+  type DeviceEdgeFacts,
   type DeviceModel,
   type DeviceSelection,
   type DeviceStatus,
+  type EdgeDeviceModel,
+  type EdgeFactsInput,
   type SelectRuleInput,
 } from './deviceModel';
 import { getFirebase } from './firebase';
-import { buildDeviceSelectPrompt, DEVICE_SELECT_SYSTEM } from './prompts';
+import {
+  buildDeviceEdgePrompt,
+  buildDeviceSelectPrompt,
+  DEVICE_EDGE_SYSTEM,
+  DEVICE_SELECT_SYSTEM,
+} from './prompts';
 
 /** RFC 2606 reserved TLD: never resolves. */
 export const DEVICE_ONLY_BASE_URL = 'https://on-device-only.invalid';
@@ -147,6 +155,132 @@ function unavailableFrom(e: unknown, kind: DeviceModel['kind']): DeviceStatus {
     : { state: 'unavailable', kind, reason };
 }
 
+/**
+ * Sends one prompt to Gemini Nano and returns the parsed JSON. Rejects (and
+ * logs as unexpected) any reply that did not come from the device.
+ */
+async function promptOnDevice(model: DeviceModelLike, prompt: string): Promise<unknown> {
+  let result: Awaited<ReturnType<DeviceModelLike['generateContent']>>;
+  try {
+    result = await model.generateContent(prompt);
+  } catch (e) {
+    throw new DeviceError((e as Error).message, 'FAILED');
+  }
+
+  if (result.response.inferenceSource !== InferenceSource.ON_DEVICE) {
+    egressLog.record({
+      kind: 'unexpected-cloud',
+      label: 'Device model reported a non-device route',
+      bytesSent: utf8Bytes(prompt),
+      text: prompt,
+      origins: [],
+      status: 'error',
+      inferenceSource: result.response.inferenceSource ?? 'unknown',
+    });
+    throw new DeviceError(
+      `Expected on-device inference, got ${result.response.inferenceSource ?? 'unknown'}.`,
+      'RAN_IN_CLOUD',
+    );
+  }
+
+  try {
+    return JSON.parse(result.response.text());
+  } catch {
+    throw new DeviceError('Device model returned malformed JSON.', 'BAD_OUTPUT');
+  }
+}
+
+/** Plain JSON schema for the edge facts. NONE and '' stand for null (see buildDeviceEdgePrompt). */
+export function buildEdgeSchema(ruleIds: readonly string[]) {
+  return {
+    type: 'object',
+    properties: {
+      matchedRuleId: { type: 'string', enum: [...ruleIds, NONE] },
+      triggersWhenCondition: { type: 'boolean' },
+      matchesException: { type: 'boolean' },
+      matchedExceptionText: { type: 'string' },
+      outOfScope: { type: 'boolean' },
+    },
+    required: [
+      'matchedRuleId',
+      'triggersWhenCondition',
+      'matchesException',
+      'matchedExceptionText',
+      'outOfScope',
+    ],
+  } as const;
+}
+
+/** Gemini Nano for connections, with the same guards as FirebaseDeviceModel. One per cartridge version. */
+export class FirebaseEdgeModel implements EdgeDeviceModel {
+  readonly kind = 'firebase' as const;
+  private model: DeviceModelLike | undefined;
+  private ready = false;
+  private readonly ruleIds: readonly string[];
+  private readonly factory: DeviceModelFactory;
+  private readonly outputSchema;
+
+  constructor(ruleIds: readonly string[], factory: DeviceModelFactory = firebaseFactory) {
+    if (ruleIds.length === 0) throw new Error('FirebaseEdgeModel needs at least one rule ID');
+    this.ruleIds = ruleIds;
+    this.factory = factory;
+    const [first, ...rest] = [...ruleIds, NONE];
+    this.outputSchema = z.object({
+      matchedRuleId: z.enum([first as string, ...rest]),
+      triggersWhenCondition: z.boolean(),
+      matchesException: z.boolean(),
+      matchedExceptionText: z.string(),
+      outOfScope: z.boolean(),
+    });
+  }
+
+  async prepare(onProgress: (fraction: number) => void): Promise<DeviceStatus> {
+    try {
+      this.model ??= this.factory({
+        responseConstraint: buildEdgeSchema(this.ruleIds),
+        systemPrompt: DEVICE_EDGE_SYSTEM,
+        languages: [...config.deviceLanguages],
+      });
+      const status = await initialise(this.model, onProgress);
+      this.ready = status.state === 'ready';
+      return status;
+    } catch (e) {
+      this.ready = false;
+      return unavailableFrom(e, this.kind);
+    }
+  }
+
+  async reportFacts({ edge, candidates }: EdgeFactsInput): Promise<DeviceEdgeFacts> {
+    if (!this.model || !this.ready) {
+      throw new DeviceError('Prepare this device first.', 'NOT_PREPARED');
+    }
+    const prompt = buildDeviceEdgePrompt(reveal(edge), candidates);
+    if (prompt.length > config.deviceMaxPromptChars) {
+      throw new DeviceError(
+        `Device prompt is ${prompt.length} characters, over the ${config.deviceMaxPromptChars} limit.`,
+        'PROMPT_TOO_LONG',
+      );
+    }
+    const parsed = this.outputSchema.safeParse(await promptOnDevice(this.model, prompt));
+    if (!parsed.success) {
+      throw new DeviceError(
+        `Device output failed validation: ${parsed.error.message}`,
+        'BAD_OUTPUT',
+      );
+    }
+    const f = parsed.data;
+    const text = f.matchedExceptionText.trim();
+    return {
+      matchedRuleId: f.matchedRuleId === NONE ? null : f.matchedRuleId,
+      triggersWhenCondition: f.triggersWhenCondition,
+      matchesException: f.matchesException,
+      matchedExceptionText: text === '' ? null : text,
+      outOfScope: f.outOfScope,
+      source: 'ON_DEVICE',
+    };
+  }
+}
+
 export class FirebaseDeviceModel implements DeviceModel {
   readonly kind = 'firebase' as const;
   private model: DeviceModelLike | undefined;
@@ -194,35 +328,7 @@ export class FirebaseDeviceModel implements DeviceModel {
       );
     }
 
-    let result: Awaited<ReturnType<DeviceModelLike['generateContent']>>;
-    try {
-      result = await this.model.generateContent(prompt);
-    } catch (e) {
-      throw new DeviceError((e as Error).message, 'FAILED');
-    }
-
-    if (result.response.inferenceSource !== InferenceSource.ON_DEVICE) {
-      egressLog.record({
-        kind: 'unexpected-cloud',
-        label: 'Device model reported a non-device route',
-        bytesSent: utf8Bytes(prompt),
-        text: prompt,
-        origins: [],
-        status: 'error',
-        inferenceSource: result.response.inferenceSource ?? 'unknown',
-      });
-      throw new DeviceError(
-        `Expected on-device inference, got ${result.response.inferenceSource ?? 'unknown'}.`,
-        'RAN_IN_CLOUD',
-      );
-    }
-
-    let json: unknown;
-    try {
-      json = JSON.parse(result.response.text());
-    } catch {
-      throw new DeviceError('Device model returned malformed JSON.', 'BAD_OUTPUT');
-    }
+    const json = await promptOnDevice(this.model, prompt);
     const parsed = this.outputSchema.safeParse(json);
     if (!parsed.success) {
       throw new DeviceError(

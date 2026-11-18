@@ -3,14 +3,21 @@ import { SAMPLE_RULES } from '@/testing/sampleRules';
 import { asPrivate } from '@/privacy';
 import { egressLog } from '@/telemetry/egress';
 import {
+  buildEdgeSchema,
   buildSelectSchema,
   FirebaseDeviceModel,
+  FirebaseEdgeModel,
   prepareThisDevice,
   type DeviceModelFactory,
   type DeviceModelLike,
   type DeviceModelParams,
 } from './firebaseDevice';
-import { buildDeviceSelectPrompt, formatCandidateLine } from './prompts';
+import {
+  buildDeviceSelectPrompt,
+  DEVICE_EDGE_SYSTEM,
+  formatCandidateLine,
+  formatEdgeCandidateLine,
+} from './prompts';
 
 const IDS = ['R001', 'R002', 'R003'];
 
@@ -200,5 +207,72 @@ describe('prepareThisDevice', () => {
       state: 'unavailable',
       reason: 'Download interrupted',
     });
+  });
+});
+
+describe('FirebaseEdgeModel', () => {
+  const edge = asPrivate('Latrine pit --> Borehole (12 metres)', 'diagram-label');
+  const facts = (o: Record<string, unknown> = {}) =>
+    JSON.stringify({
+      matchedRuleId: 'R002',
+      triggersWhenCondition: true,
+      matchesException: false,
+      matchedExceptionText: '',
+      outOfScope: false,
+      ...o,
+    });
+
+  it('uses the edge prompt and a schema of every rule ID plus NONE', async () => {
+    const f = fake({ reply: facts() });
+    const m = new FirebaseEdgeModel(IDS, f.factory);
+    await m.prepare(() => {});
+    expect(f.params()?.systemPrompt).toBe(DEVICE_EDGE_SYSTEM);
+    expect(f.params()?.responseConstraint).toEqual(buildEdgeSchema(IDS));
+    expect(buildEdgeSchema(IDS).properties.matchedRuleId.enum).toEqual([...IDS, 'NONE']);
+    const shown = SAMPLE_RULES.slice(1, 2);
+    await m.reportFacts({ edge, candidates: shown });
+    const prompt = f.generateContent.mock.calls[0]?.[0] ?? '';
+    expect(prompt.startsWith('Connection: Latrine pit --> Borehole (12 metres)')).toBe(true);
+    for (const r of shown) expect(prompt).toContain(formatEdgeCandidateLine(r));
+    expect(prompt).not.toContain('R001:');
+    expect(prompt).toContain('Only report the facts.');
+  });
+
+  it('reads NONE and an empty exception as null', async () => {
+    const f = fake({ reply: facts({ matchedRuleId: 'NONE', outOfScope: true }) });
+    const m = new FirebaseEdgeModel(IDS, f.factory);
+    await m.prepare(() => {});
+    expect(await m.reportFacts({ edge, candidates: SAMPLE_RULES.slice(0, 2) })).toEqual({
+      matchedRuleId: null,
+      triggersWhenCondition: true,
+      matchesException: false,
+      matchedExceptionText: null,
+      outOfScope: true,
+      source: 'ON_DEVICE',
+    });
+  });
+
+  it('rejects a reply that came from the cloud, and logs it', async () => {
+    const f = fake({ reply: facts(), inferenceSource: 'in_cloud' });
+    const m = new FirebaseEdgeModel(IDS, f.factory);
+    await m.prepare(() => {});
+    await expect(m.reportFacts({ edge, candidates: SAMPLE_RULES })).rejects.toMatchObject({
+      code: 'RAN_IN_CLOUD',
+    });
+    expect(egressLog.entries().map((e) => e.kind)).toEqual(['unexpected-cloud']);
+  });
+
+  it('rejects malformed or invalid output, and refuses before prepare', async () => {
+    const m0 = new FirebaseEdgeModel(IDS, fake().factory);
+    await expect(m0.reportFacts({ edge, candidates: SAMPLE_RULES })).rejects.toMatchObject({
+      code: 'NOT_PREPARED',
+    });
+    for (const reply of ['not json', facts({ matchedRuleId: 'R999' }), '{"outOfScope":true}']) {
+      const m = new FirebaseEdgeModel(IDS, fake({ reply }).factory);
+      await m.prepare(() => {});
+      await expect(m.reportFacts({ edge, candidates: SAMPLE_RULES })).rejects.toMatchObject({
+        code: 'BAD_OUTPUT',
+      });
+    }
   });
 });
