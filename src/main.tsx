@@ -14,6 +14,8 @@ void egressLog.attachPersistence({ load: telemetryStore.all, save: telemetryStor
 startAskSession();
 // Save the app's own files on this device, so it opens without a signal.
 registerOfflineShell();
+// The Blueprint canvas loads its fonts from this app (/fonts/), never from a CDN.
+(window as { EXCALIDRAW_ASSET_PATH?: string }).EXCALIDRAW_ASSET_PATH = '/';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing #root element');

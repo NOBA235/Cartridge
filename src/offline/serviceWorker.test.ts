@@ -82,6 +82,11 @@ const get = (path: string, mode?: string): FakeRequest => ({
 
 describe('offline app shell', () => {
   it('lists every built file once, without the worker itself or source maps', () => {
+    expect(precacheList(['fonts/Xiaolai/a.woff2', 'fonts/Excalifont/b.woff2'])).toEqual([
+      '/',
+      '/fonts/Excalifont/b.woff2',
+      '/index.html',
+    ]);
     expect(
       precacheList([
         'assets/index-a.js',

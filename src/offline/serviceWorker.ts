@@ -23,11 +23,18 @@ export interface ServiceWorkerOptions {
 }
 
 /** Paths to cache: '/', '/index.html' and every built or public file except the worker itself and source maps. */
+/**
+ * The Chinese, Japanese and Korean fallback font (12 MB in about 200 pieces) is
+ * served but not saved ahead: the browser fetches a piece only if the diagram
+ * uses those characters.
+ */
+const NOT_PRECACHED = /^fonts\/Xiaolai\//;
+
 export function precacheList(fileNames: readonly string[]): string[] {
   const paths = new Set<string>(['/', '/index.html']);
   for (const name of fileNames) {
     const clean = name.replace(/^\/+/, '').replace(/\\/g, '/');
-    if (clean === 'sw.js' || clean.endsWith('.map')) continue;
+    if (clean === 'sw.js' || clean.endsWith('.map') || NOT_PRECACHED.test(clean)) continue;
     paths.add(`/${clean}`);
   }
   return [...paths].sort();

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
@@ -35,13 +35,62 @@ function offlineShell(): Plugin {
   };
 }
 
+const FONTS_DIR = path.resolve(
+  import.meta.dirname,
+  'node_modules/@excalidraw/excalidraw/dist/prod/fonts',
+);
+
+function fontFiles(): string[] {
+  return readdirSync(FONTS_DIR, { recursive: true, withFileTypes: true })
+    .filter((d) => d.isFile())
+    .map((d) => path.relative(FONTS_DIR, path.join(d.parentPath, d.name)).replace(/\\/g, '/'))
+    .sort();
+}
+
+/**
+ * Serves Excalidraw's fonts from this app at /fonts/ (window.EXCALIDRAW_ASSET_PATH
+ * is '/'), so the canvas never fetches them from a CDN and works offline.
+ * Build: copied into dist/fonts. Dev: served from node_modules.
+ */
+function canvasFonts(): Plugin {
+  let build = false;
+  return {
+    name: 'cartridge-canvas-fonts',
+    configResolved(c) {
+      build = c.command === 'build' && !c.build.ssr;
+    },
+    buildStart() {
+      if (!build) return;
+      for (const file of fontFiles()) {
+        this.emitFile({
+          type: 'asset',
+          fileName: `fonts/${file}`,
+          source: readFileSync(path.join(FONTS_DIR, file)),
+        });
+      }
+    },
+    configureServer(server) {
+      server.middlewares.use('/fonts/', (req, res, next) => {
+        const rel = decodeURIComponent((req.url ?? '').split('?')[0] ?? '').replace(/^\/+/, '');
+        const file = path.resolve(FONTS_DIR, rel);
+        if (!file.startsWith(FONTS_DIR + path.sep) || !existsSync(file)) {
+          next();
+          return;
+        }
+        res.setHeader('Content-Type', 'font/woff2');
+        res.end(readFileSync(file));
+      });
+    },
+  };
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   // `vitest run --mode smoke` runs only the *.smoke.ts files, which make real
   // network calls. They are never part of `npm test`.
   const smoke = mode === 'smoke';
   return {
-    plugins: [react(), tailwindcss(), offlineShell()],
+    plugins: [react(), tailwindcss(), canvasFonts(), offlineShell()],
     // Own ports, so service workers, caches and IndexedDB left at localhost:5173
     // by other projects can never serve their files to this app.
     server: { port: 5180, strictPort: true },
