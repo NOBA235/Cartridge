@@ -24,6 +24,7 @@ describe('summariseEgress', () => {
       e('EXAM', 3000),
       e('COMPILE', 8000),
       e('TUTOR', 700),
+      e('EDGE_BENCH', 900),
       e('Signal check', 0, 'probe'),
       e('PING', 40),
     ]);
@@ -31,12 +32,13 @@ describe('summariseEgress', () => {
       ['making', 3, 17500],
       ['exam-questions', 1, 3000],
       ['tutor', 1, 700],
+      ['connection-tests', 1, 900],
       ['questions', 1, 120],
       ['signal-checks', 1, 0],
       ['developer', 1, 40],
     ]);
-    expect(s.totalRequests).toBe(8);
-    expect(s.totalBytes).toBe(17500 + 3000 + 700 + 120 + 40);
+    expect(s.totalRequests).toBe(9);
+    expect(s.totalBytes).toBe(17500 + 3000 + 700 + 900 + 120 + 40);
   });
 
   it('counts approvals separately, sending nothing', () => {

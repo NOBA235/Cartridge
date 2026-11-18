@@ -3,6 +3,7 @@
  * truth; TypeScript types are inferred from them so the two cannot drift.
  */
 import { z } from 'zod';
+import { EdgeBenchReportSchema } from '@/canvas/benchTypes';
 
 export const SeveritySchema = z.enum(['critical', 'major', 'minor']);
 export type Severity = z.infer<typeof SeveritySchema>;
@@ -107,6 +108,8 @@ export const CartridgeSchema = z
     rules: z.array(RuleSchema),
     changelog: z.array(z.string()),
     report: ExamReportSchema.optional(),
+    /** The connection test for the Blueprint canvas, run on the device with these rules. */
+    edgeBench: EdgeBenchReportSchema.optional(),
   })
   .refine((c) => new Set(c.rules.map((r) => r.id)).size === c.rules.length, {
     message: 'Rule IDs must be unique',

@@ -10,6 +10,7 @@
  * - proposals: rules the cloud suggested, waiting for review or decided, keyed by id.
  */
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
+import { EdgeBenchSchema, type EdgeBench } from '@/canvas/benchTypes';
 import { ExamSetSchema, type ExamSet } from '@/exam/types';
 import { createStore } from '@/lib/store';
 import type { QueueItem, QueueStorage } from '@/queue/offlineQueue';
@@ -37,11 +38,15 @@ export interface CartridgeDB extends DBSchema {
   telemetry: { key: number; value: EgressEntry };
   exams: { key: string; value: ExamSet };
   proposals: { key: string; value: ProposalRecord; indexes: { 'by-cartridge': string } };
+  benches: { key: string; value: EdgeBench };
 }
 
 export const DB_NAME = 'cartridge';
-/** 1: sources, cartridges, versions, queue, telemetry. 2: adds 'exams'. 3: adds 'proposals'. */
-export const DB_VERSION = 3;
+/**
+ * 1: sources, cartridges, versions, queue, telemetry. 2: adds 'exams'.
+ * 3: adds 'proposals'. 4: adds 'benches' (the connection test per cartridge).
+ */
+export const DB_VERSION = 4;
 
 export function openCartridgeDB(name = DB_NAME): Promise<IDBPDatabase<CartridgeDB>> {
   return openDB<CartridgeDB>(name, DB_VERSION, {
@@ -64,6 +69,9 @@ export function openCartridgeDB(name = DB_NAME): Promise<IDBPDatabase<CartridgeD
           'by-cartridge',
           'cartridgeId',
         );
+      }
+      if (oldVersion < 4) {
+        db.createObjectStore('benches', { keyPath: 'cartridgeId' });
       }
     },
   });
@@ -177,10 +185,13 @@ export const cartridgesStore = {
     const cartridge = await d.get('versions', [id, record.currentVersion]);
     return cartridge ? { record, cartridge } : undefined;
   },
-  /** Deletes the cartridge, all its versions, its saved exam and its suggestions. */
+  /** Deletes the cartridge, all its versions, its saved exam, its suggestions and its connection test. */
   async delete(id: string): Promise<void> {
     const d = await db();
-    const tx = d.transaction(['cartridges', 'versions', 'exams', 'proposals'], 'readwrite');
+    const tx = d.transaction(
+      ['cartridges', 'versions', 'exams', 'proposals', 'benches'],
+      'readwrite',
+    );
     const [versionKeys, proposalKeys] = await Promise.all([
       tx.objectStore('versions').index('by-cartridge').getAllKeys(id),
       tx.objectStore('proposals').index('by-cartridge').getAllKeys(id),
@@ -190,6 +201,7 @@ export const cartridgesStore = {
       ...proposalKeys.map((k) => tx.objectStore('proposals').delete(k)),
       tx.objectStore('cartridges').delete(id),
       tx.objectStore('exams').delete(id),
+      tx.objectStore('benches').delete(id),
       tx.done,
     ]);
     changed();
@@ -230,6 +242,22 @@ export const examsStore = {
   },
   async delete(cartridgeId: string): Promise<void> {
     await (await db()).delete('exams', cartridgeId);
+  },
+};
+
+/** The connection test's connections per cartridge (public text, written from the public rules). */
+export const benchesStore = {
+  async get(cartridgeId: string): Promise<EdgeBench | undefined> {
+    const parsed = EdgeBenchSchema.safeParse(await (await db()).get('benches', cartridgeId));
+    return parsed.success ? parsed.data : undefined;
+  },
+  async put(bench: EdgeBench): Promise<void> {
+    await (await db()).put('benches', EdgeBenchSchema.parse(bench));
+    changed();
+  },
+  async delete(cartridgeId: string): Promise<void> {
+    await (await db()).delete('benches', cartridgeId);
+    changed();
   },
 };
 

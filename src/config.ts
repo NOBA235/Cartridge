@@ -7,7 +7,8 @@
  * - gemini-3.5-flash-lite: the SDK's default cloud model; used for quick tasks.
  * Re-check that page before the submission.
  */
-export type CloudTaskName = 'DEV_PING' | 'COMPILE' | 'REPAIR_QUOTE' | 'EXAM' | 'TUTOR' | 'ANSWER';
+export type CloudTaskName =
+  'DEV_PING' | 'COMPILE' | 'REPAIR_QUOTE' | 'EXAM' | 'TUTOR' | 'ANSWER' | 'EDGE_BENCH';
 
 export const config = {
   cloudModels: {
@@ -17,6 +18,7 @@ export const config = {
     EXAM: 'gemini-3.8-flash',
     TUTOR: 'gemini-3.8-flash',
     ANSWER: 'gemini-3.5-flash-lite',
+    EDGE_BENCH: 'gemini-3.8-flash',
   } satisfies Record<CloudTaskName, string>,
   /** Retries after the first attempt, so 3 attempts at most. */
   cloudMaxRetries: 2,
@@ -81,6 +83,14 @@ export const config = {
     maxQuoteChars: 300,
     /** Above this many sections, the user confirms the number of cloud requests first. */
     confirmAboveSections: 20,
+  },
+  /** The connection test that gates the Blueprint canvas's verdict mode. */
+  edgeBench: {
+    /** Candidate rules the device sees for one connection. */
+    topK: 5,
+    runs: 3,
+    minCriticalRecall: 0.9,
+    minOverallAccuracy: 0.75,
   },
   /** Largest cartridge JSON file accepted for import. */
   maxImportBytes: 20 * 1024 * 1024,

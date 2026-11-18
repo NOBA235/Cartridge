@@ -139,7 +139,7 @@ export class VersionError extends Error {
   override readonly name = 'VersionError';
 }
 
-/** Version N+1 based on `current`, without the report (it described other rules). */
+/** Version N+1 based on `current`, without its test results (they described other rules). */
 function nextVersion(
   current: Cartridge,
   rules: Rule[],
@@ -148,6 +148,7 @@ function nextVersion(
 ): Cartridge {
   const rest: Cartridge = { ...current };
   delete rest.report;
+  delete rest.edgeBench;
   const version = current.version + 1;
   return CartridgeSchema.parse({
     ...rest,
@@ -189,6 +190,10 @@ export function restoreVersion(
     `restored the rules of version ${target.version}.`,
     now,
   );
-  // The rules are exactly the ones version k was tested with, so its report still describes them.
-  return target.report ? CartridgeSchema.parse({ ...restored, report: target.report }) : restored;
+  // The rules are exactly the ones version k was tested with, so its results still describe them.
+  return CartridgeSchema.parse({
+    ...restored,
+    ...(target.report ? { report: target.report } : {}),
+    ...(target.edgeBench ? { edgeBench: target.edgeBench } : {}),
+  });
 }

@@ -25,8 +25,11 @@ export function cartridgeAfterExam(
   const ids = [...new Set(kept.map((k) => k.ruleId))];
   const fields = [...new Set(kept.map((k) => FIELD_NAMES[k.field]))];
   const version = c.version + 1;
+  // The connection test described the old wording of these rules.
+  const base: Cartridge = { ...c };
+  delete base.edgeBench;
   const next: Cartridge = {
-    ...c,
+    ...base,
     version,
     parentVersion: c.version,
     createdAt: now.toISOString(),
