@@ -10,6 +10,7 @@ import { Button } from '@/ui/primitives/button';
 import { linkHandler, usePath, type AppPath } from '@/ui/router';
 import { Ask } from '@/ui/screens/Ask';
 import { CartridgeView } from '@/ui/screens/CartridgeView';
+import { ConnectionTest } from '@/ui/screens/ConnectionTest';
 import { DevPage } from '@/ui/screens/DevPage';
 import { ExamDay } from '@/ui/screens/ExamDay';
 import { LoadRulebook } from '@/ui/screens/LoadRulebook';
@@ -33,6 +34,7 @@ function Screen({ path }: { path: AppPath }) {
   if (path === '/ask') return <Ask />;
   if (path === '/exam') return <ExamDay />;
   if (path === '/report') return <ReportCard />;
+  if (path === '/connections') return <ConnectionTest />;
   return <Welcome />;
 }
 

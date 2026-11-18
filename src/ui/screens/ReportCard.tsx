@@ -4,6 +4,7 @@
  * and what left this device.
  */
 import { useId, useMemo, useSyncExternalStore } from 'react';
+import { canvasMode } from '@/canvas/bench';
 import type { LoadedCartridge } from '@/cartridge/askSession';
 import { verifyQuote } from '@/cartridge/verifyQuote';
 import { examJobs } from '@/exam/examJob';
@@ -182,6 +183,25 @@ function ReportFor({ loaded }: { loaded: LoadedCartridge }) {
         </section>
       )}
       <SourceCheck loaded={loaded} />
+      <section className="flex flex-col gap-2 rounded-xl border p-5">
+        <h2 className="text-lg font-semibold">Connection test</h2>
+        <p className="text-sm text-muted-foreground">
+          {c.edgeBench
+            ? `${canvasMode(c) === 'verdict' ? 'Passed' : 'Below the bar'} on ${
+                c.edgeBench.measuredOn === 'device'
+                  ? 'this device'
+                  : 'a stand-in, not a real device'
+              }: ${Math.round(c.edgeBench.criticalRecall * 100)}% of violations caught, test pass rate ${Math.round(c.edgeBench.overallAccuracy * 100)}%. The Blueprint canvas is in ${canvasMode(c) === 'verdict' ? 'verdict' : 'advisory'} mode.`
+            : `Version ${c.version} has not been through the connection test, so the Blueprint canvas would only advise.`}
+        </p>
+        <a
+          href={href('/connections', { id: c.id })}
+          onClick={linkHandler('/connections', { id: c.id })}
+          className={buttonVariants({ size: 'sm', variant: 'outline', className: 'self-start' })}
+        >
+          Open the connection test
+        </a>
+      </section>
       <Receipt />
     </div>
   );

@@ -38,6 +38,8 @@ cartridge**, press **Prepare this device** in the header to download Gemini Nano
 | Ask: question the cartridge cannot answer | Cloud, only with 'Ask the cloud when needed' on | Your question, only after you approve the exact text, plus matching public rules and rulebook passages                         |
 | Approve a suggested rule: check           | Cloud writes 3 questions, this device answers   | The new public rule (not sent if it uses words from your question that the rulebook lacks); your question stays on this device |
 | Signal check before sending queued items  | Google connectivity URL                         | An empty `HEAD` request                                                                                                        |
+| Connection test: draft the connections    | Cloud, when you press Draft                     | The public rules (titles, conditions, exceptions, severity), no quotes                                                         |
+| Connection test: run it                   | This device (Gemini Nano), never the cloud      | Nothing                                                                                                                        |
 | Developer page (`/dev`) test buttons      | Cloud                                           | A fixed test prompt                                                                                                            |
 | Opening the app                           | The app's own host, then this device            | Requests for the app's own files; after the first visit they are saved on the device                                           |
 
@@ -68,6 +70,26 @@ device** panel.
 5. **Versions.** When the cloud answers a question the cartridge missed, it may suggest a rule.
    The suggestion is kept only if its quote is in the rulebook. You review the change, approve it
    as a new version (nothing is ever overwritten), and the device re-runs the affected questions.
+
+## Connection test (before the Blueprint canvas)
+
+The Blueprint canvas will check each connection in a diagram against the rules, on the device.
+It may mark connections red or green only after Gemini Nano passes a test on that device;
+otherwise it only advises (amber, never green). The **Connection test** screen
+(`/connections`, linked from the Report card) runs that test:
+
+1. The cloud drafts 30 connections from the public rules: 10 violations of critical rules, 10
+   compliant, 5 allowed by a stated exception, 5 no rule covers. A person reviews every one by
+   hand and corrects the expected result where needed; the set can be exported as `edges.json`
+   and imported again.
+2. Gemini Nano judges each connection three times; the lowest run counts. For each connection
+   it sees only that connection and up to 5 candidate rules found by search, and reports facts
+   (which rule, whether its situation is met, whether a listed exception applies). Code decides
+   the result from those facts ([src/canvas/edges.ts](src/canvas/edges.ts)); the chosen rule must
+   be one of the candidates and its quote must verify, or the result is "uncertain".
+3. The bar: at least 9 of 10 violations caught and at least 23 of 30 right. Missed violations
+   are listed on their own. The result is saved on the cartridge version that was tested, and a
+   new version of the rules needs the test again.
 
 ## Without a signal
 
@@ -197,6 +219,8 @@ the service worker, and caches the content-named files in `/assets` for a year.
 | After approving a suggested rule: test questions for it          | [src/exam/check.ts](src/exam/check.ts)                                               | through `cloudJson` (public rule text) |
 | After approving a suggested rule: answering the check            | [src/exam/check.ts](src/exam/check.ts)                                               | Gemini Nano only, never the cloud      |
 | Device rule selection (Gemini Nano)                              | [src/ai/firebaseDevice.ts](src/ai/firebaseDevice.ts)                                 | `InferenceMode.ONLY_ON_DEVICE`         |
+| Connection test: drafting the connections                        | [src/canvas/bench.ts](src/canvas/bench.ts)                                           | through `cloudJson` (public rule text) |
+| Connection facts (Gemini Nano, `FirebaseEdgeModel`)              | [src/ai/firebaseDevice.ts](src/ai/firebaseDevice.ts)                                 | `InferenceMode.ONLY_ON_DEVICE`         |
 
 The raw Chrome `LanguageModel` API is never called (ESLint blocks it).
 

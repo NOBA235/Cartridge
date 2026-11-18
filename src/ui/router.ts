@@ -2,7 +2,15 @@
 import { useMemo, useSyncExternalStore, type MouseEvent } from 'react';
 
 export type AppPath =
-  '/' | '/load' | '/cartridge' | '/versions' | '/exam' | '/ask' | '/report' | '/dev';
+  | '/'
+  | '/load'
+  | '/cartridge'
+  | '/versions'
+  | '/exam'
+  | '/ask'
+  | '/report'
+  | '/connections'
+  | '/dev';
 
 const KNOWN: readonly AppPath[] = [
   '/',
@@ -12,6 +20,7 @@ const KNOWN: readonly AppPath[] = [
   '/exam',
   '/ask',
   '/report',
+  '/connections',
   '/dev',
 ];
 
