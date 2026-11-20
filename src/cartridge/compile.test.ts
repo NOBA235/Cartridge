@@ -269,8 +269,8 @@ describe('compileCartridge', () => {
     });
   });
 
-  it('asks again for a quote over 300 characters', async () => {
-    const long = `${PAGES[0] ?? ''} ${'x'.repeat(300)}`;
+  it('asks again for a quote over the configured max quote length', async () => {
+    const long = `${PAGES[0] ?? ''} ${'x'.repeat(500)}`;
     const { cloud } = fakeCloud(
       bySection({ water: [rule({ quote: long })] }, () => ({
         repairs: [{ index: 0, quote: long }],

@@ -1,6 +1,7 @@
 # Cartridge
 
-Turns a long rulebook into a small, tested, offline-ready cartridge of numbered rules, answered by Gemini Nano on your own device.
+Turns a public security or compliance standard into a small, tested, offline-ready cartridge of
+numbered rules — answered and audited live by Gemini Nano on your own device.
 
 **Public standards go to the cloud once. Your diagram never does.**
 
@@ -20,9 +21,11 @@ cp .env.example .env.local   # fill in your Firebase web config (see Firebase se
 npm run dev                  # http://localhost:5180
 ```
 
-Then, in the app: **Load a rulebook** (a public, openly licensed PDF, .txt or .md), **Make the
-cartridge**, press **Prepare this device** in the header to download Gemini Nano once, run
-**Exam Day**, and **Ask**. The **Report card** shows how the cartridge did and what left the device.
+Then, in the app: **Load a rulebook** (a public, openly licensed standard such as OWASP ASVS 5.0 or
+NIST SP 800-63B in PDF, .txt or .md), **Make the cartridge**, press **Prepare this device** in the
+header to download Gemini Nano once, run **Exam Day**, **Ask** questions offline, or audit a system
+diagram on the **Blueprint** canvas. The **Report card** shows how the cartridge did and what left
+the device.
 
 ## What runs where
 
@@ -75,9 +78,10 @@ device** panel.
 ## Blueprint canvas
 
 The **Blueprint** screen (`/blueprint`) is a drawing surface ([Excalidraw](https://github.com/excalidraw/excalidraw))
-for mapping a system or a site. Draw boxes, name them, and connect them with arrows; or start
-from one of three templates. Every connection is checked against the cartridge on this device,
-600 ms after drawing pauses, and only new or changed connections are checked again.
+for mapping a system architecture. Draw boxes, name them, and connect them with arrows; or start
+from one of three templates (`Web service`, `Data pipeline`, `Auth & session flow`). Every
+connection is checked against the cartridge on this device, 600 ms after drawing pauses, and only
+new or changed connections are checked again.
 
 - **Nothing on the canvas leaves the device.** Box and arrow labels are `Private` values: they go
   to Gemini Nano on this device and nowhere else. The canvas makes no cloud calls, its header
@@ -85,9 +89,9 @@ from one of three templates. Every connection is checked against the cartridge o
   only. Excalidraw's AI features and embeds are switched off, and its fonts are served by this
   app (`/fonts/`), never from a CDN.
 - **How a connection is judged:** the same evaluator as the connection test (search for up to 5
-  rules, Gemini Nano reports facts, code decides; the rule must be a candidate and its quote must
-  verify). The rule title, instruction, exception and quote shown in the inspector come from the
-  rule, never from the model.
+  rules labelled `C1..C5`, Gemini Nano reports facts including a 0-based `matchedExceptionIndex`,
+  and code resolves the rule and exact exception text; the quote must verify). The rule title,
+  instruction, exception and quote shown in the inspector come from the rule, never from the model.
 - **Advisory mode** until the connection test has passed on this device with these rules: a
   possible violation is amber ("Possible violation, review R005"), compliant connections show
   "Not checked", and nothing is green. **Verdict mode** after a pass: red with a badge such as
@@ -121,9 +125,10 @@ otherwise it only advises (amber, never green). The **Connection test** screen
 After one visit with a signal, the production build works with the network off:
 
 - A service worker ([src/offline/serviceWorker.ts](src/offline/serviceWorker.ts)), generated at
-  build time with the exact list of built files, saves the app on the device. The footer says
-  **Saved on this device** when that is done. It never touches requests to other origins, so
-  every call to Firebase goes to the network and shows in the egress log as before.
+  build time, precaches the core app shell (plus `pdf.js` and its worker) on install and
+  runtime-caches lazy screens (like the Blueprint canvas and its fonts) on first visit. The footer
+  says **Saved on this device** when the shell is ready. It never touches requests to other
+  origins, so every call to Firebase goes to the network and shows in the egress log as before.
 - Rulebooks, cartridges, versions, exams and the egress log are in IndexedDB. The app asks the
   browser to keep them when it clears space (the browser decides).
 - Without a signal you can open every screen, read the cards with their quotes checked against

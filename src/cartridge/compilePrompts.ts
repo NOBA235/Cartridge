@@ -11,10 +11,10 @@ import { asPublic } from '@/privacy';
 import { CalcSchema, SeveritySchema } from './types';
 
 export const COMPILE_PROMPT = asPublic(
-  `You convert one section of a rulebook into rules for a field reference tool. Source section (page markers look like [p. 12]):
+  `You convert one section of a public standard or rulebook into numbered rules for an offline reference and architecture audit tool. Source section (page markers look like [p. 12]):
 {{chunk}}
 
-Extract every distinct, actionable rule, standard, threshold or exception the text states. For each return: title (max 10 words); when (plain-language situation where it applies); then (what must be done, as stated, keeping numbers exact); exceptions (array, empty if none); severity (critical if the text ties it to safety, health, legal or severe consequences, else major or minor); keywords (6 to 10 words or short phrases a non-expert might use when asking); section; page (if known); quote (one contiguous passage copied exactly from the source, at most 300 characters, containing the key requirement); calc (only if the rule defines a quantity per unit, otherwise omit).
+Extract every distinct, actionable rule, standard, threshold or exception the text states. For each return: title (max 10 words); when (plain-language situation where it applies); then (what must be done, as stated, keeping numbers exact); exceptions (array of explicit exceptions or carve-outs stated in the text, empty if none); severity ('critical' for baseline Level 1 or mandatory controls that prevent direct security breaches, unauthorized access, unencrypted transport, sensitive-data exposure, credential leaks, or safety/legal harm; 'major' for defense-in-depth, Level 2/3, or documentation controls; 'minor' for operational or best-practice guidance); keywords (6 to 10 words or short phrases a practitioner might use when asking or naming components); section; page (if known); quote (one contiguous passage copied exactly from the source, at most 500 characters, containing the key requirement); calc (only if the rule defines a quantity per unit, otherwise omit).
 
 Use only what the text says. Never invent numbers, thresholds or exceptions. Copy quotes character for character. If a rule is unclear, skip it.
 
@@ -23,7 +23,7 @@ Return JSON only: {"rules": [ ... ]}.`,
 );
 
 export const REPAIR_QUOTE_PROMPT = asPublic(
-  `The rules below were taken from the source section further down, but their quote is not an exact copy of the section's text. For each rule, copy one contiguous passage from the section, character for character, at most 300 characters, that contains the rule's key requirement. Do not change, shorten inside, or fix the wording of the passage. If the section has no such passage, return null for that rule.
+  `The rules below were taken from the source section further down, but their quote is not an exact copy of the section's text. For each rule, copy one contiguous passage from the section, character for character, at most 500 characters, that contains the rule's key requirement. Do not change, shorten inside, or fix the wording of the passage. If the section has no such passage, return null for that rule.
 
 Return JSON only: {"repairs": [{"index": number, "quote": string | null}]}.
 

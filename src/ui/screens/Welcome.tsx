@@ -64,15 +64,25 @@ export function Welcome() {
     },
     {
       title: 'Ask',
-      text: 'Questions are answered on this device from the rules, without a signal.',
+      text: 'Engineering and compliance questions are answered on this device from the rules, without a signal.',
       path: '/ask',
       done: answered > 0,
       status: answered + r.queued + r.unanswered > 0 ? askedParts.join(', ') : 'No question yet',
       action: 'Ask a question',
     },
     {
+      title: 'Blueprint canvas',
+      text: 'Draw or load a system architecture diagram. Every connection is audited live on this device — zero bytes leave your laptop.',
+      path: '/blueprint',
+      done: cartridge?.edgeBench !== undefined,
+      status: cartridge?.edgeBench
+        ? `Connection test ${cartridge.edgeBench.passed ? 'passed' : 'below the bar'}`
+        : 'Runs locally on Gemini Nano',
+      action: 'Open Blueprint',
+    },
+    {
       title: 'Report card',
-      text: 'How the cartridge did, and exactly what left this device.',
+      text: 'How the cartridge did on this device, and exactly what left it.',
       path: '/report',
       done: false,
       status: '',
@@ -81,15 +91,16 @@ export function Welcome() {
   ];
   const next = loading
     ? undefined
-    : (steps.find((s) => !s.done && s.path !== '/report') ?? steps[4]);
+    : (steps.find((s) => !s.done && s.path !== '/report' && s.path !== '/blueprint') ?? steps[4]);
 
   return (
     <section className="mx-auto flex max-w-3xl flex-col gap-8 py-12">
       <div className="flex flex-col gap-3">
         <h1 className="text-3xl font-semibold tracking-tight">Cartridge</h1>
         <p className="text-lg text-muted-foreground">
-          Turns a long rulebook into a small, tested, offline-ready cartridge of numbered rules, for
-          field staff who need standards without a signal.
+          Turns a public security or compliance standard into a small, tested, offline-ready
+          cartridge of numbered rules — so teams can audit system architectures and engineering
+          questions on their own device.
         </p>
         <p className="text-xl font-medium">
           Public standards go to the cloud once. Your diagram never does.

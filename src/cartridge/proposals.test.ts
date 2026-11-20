@@ -56,7 +56,7 @@ describe('checkProposal', () => {
       reason: 'QUOTE_NOT_FOUND',
       detail: 'Its quote was not found in the rulebook.',
     });
-    expect(checkProposal({ ...SHORT_STAY, quote: 'x'.repeat(301) }, ctx())).toMatchObject({
+    expect(checkProposal({ ...SHORT_STAY, quote: 'x'.repeat(501) }, ctx())).toMatchObject({
       reason: 'QUOTE_TOO_LONG',
     });
   });

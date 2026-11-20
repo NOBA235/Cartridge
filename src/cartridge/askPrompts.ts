@@ -11,7 +11,7 @@ import { asPublic } from '@/privacy';
 import { ruleDraftSchema } from './compilePrompts';
 
 export const CLOUD_ANSWER_PROMPT = asPublic(
-  `Answer a field question using only the rules and source passages below. If a rule answers it, return its ruleId and a short answer. If no rule does but the passages support an answer, give the answer, cite the passage by copying the exact sentence you relied on into quote, and propose a new rule (same fields as the compile output, with an exact quote from the passages). If neither, set covered to false. If the question contains a quantity the rule needs (for example a number of people), put that number in quantity, otherwise -1.
+  `Answer a practitioner's question using only the rules and source passages below. If a rule answers it, return its ruleId and a short answer. If no rule does but the passages support an answer, give the answer, cite the passage by copying the exact sentence you relied on into quote, and propose a new rule (same fields as the compile output, with an exact quote from the passages). If neither, set covered to false. If the question contains a quantity the rule needs, put that number in quantity, otherwise -1.
 
 Return JSON only: {"answer": string, "ruleId": string | null, "quote": string | null, "quantity": number, "covered": boolean, "proposedRule": object | null}.
 

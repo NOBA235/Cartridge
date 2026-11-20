@@ -213,7 +213,7 @@ function AskWith({ loaded }: { loaded: LoadedCartridge }) {
             className={`${inputClass} h-11 text-base`}
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder="For example: how many toilets for 400 people?"
+            placeholder="For example: is TLS required for internal service connections?"
             autoComplete="off"
             disabled={busy}
           />

@@ -12,7 +12,7 @@ import { buildRuleIndex } from '@/cartridge/retrieve';
 import { prepareSource } from '@/cartridge/verifyQuote';
 import { asPrivate, isPrivate, reveal, type Private } from '@/privacy';
 import { egressLog } from '@/telemetry/egress';
-import { FIELD_CARTRIDGE, FIELD_RULES, FIELD_SOURCE } from '@/testing/fieldFixture';
+import { FIELD_CARTRIDGE, FIELD_SOURCE } from '@/testing/fieldFixture';
 import { addBoundArrow, arrowGeometry, memoryScene, type Convert } from './arrows';
 import { EdgeChecker } from './checker';
 import {
@@ -458,14 +458,14 @@ describe('templates', () => {
     }
   });
 
-  it('the field site template touches rules of the test rulebook', () => {
-    const t = TEMPLATES.find((x) => x.id === 'field-site');
-    if (!t) throw new Error('field-site template missing');
-    const [first] = extractGraph(buildTemplate(t, fakeConvert) as unknown as SceneElement[]).edges;
-    if (!first) throw new Error('no connection');
-    const index = buildRuleIndex({ ...FIELD_CARTRIDGE, rules: [...FIELD_RULES] });
-    expect(index.search(reveal(first.text), { minScore: 0 }).hits.map((h) => h.rule.id)).toContain(
-      'R005',
+  it('every template extracts private architecture connections with no loose arrows', () => {
+    expect(TEMPLATES.map((t) => t.id)).toEqual(['web-service', 'data-pipeline', 'auth-flow']);
+    const auth = TEMPLATES.find((x) => x.id === 'auth-flow');
+    if (!auth) throw new Error('auth-flow template missing');
+    const g = extractGraph(buildTemplate(auth, fakeConvert) as unknown as SceneElement[]);
+    expect(g.edges.map((e) => reveal(e.text))).toContain(
+      'Browser client --> Authentication service (HTTP plaintext login)',
     );
+    expect(g.edges.every((e) => isPrivate(e.text))).toBe(true);
   });
 });

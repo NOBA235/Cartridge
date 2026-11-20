@@ -173,10 +173,11 @@ function checkQuote(
   };
 }
 
-const DETAIL: Record<'QUOTE_TOO_LONG' | 'QUOTE_NOT_FOUND', string> = {
-  QUOTE_TOO_LONG: 'Its quote was longer than 300 characters, also when asked again.',
-  QUOTE_NOT_FOUND: 'Its quote could not be found in the rulebook, also when asked again.',
-};
+function detailFor(reason: 'QUOTE_TOO_LONG' | 'QUOTE_NOT_FOUND', maxQuoteChars: number): string {
+  return reason === 'QUOTE_TOO_LONG'
+    ? `Its quote was longer than ${maxQuoteChars} characters, also when asked again.`
+    : 'Its quote could not be found in the rulebook, also when asked again.';
+}
 
 // ---------- compile ----------
 
@@ -369,7 +370,7 @@ export async function compileCartridge(
         dropped.push({
           title: f.draft.title,
           reason: q.reason,
-          detail: DETAIL[q.reason],
+          detail: detailFor(q.reason, opts.maxQuoteChars),
           section: sectionNo,
           quote: q.quote,
         });
@@ -379,10 +380,10 @@ export async function compileCartridge(
         title: f.draft.title,
         reason: f.reason,
         detail: repairError
-          ? `${DETAIL[f.reason].replace(', also when asked again', '')} Asking again failed: ${repairError}`
+          ? `${detailFor(f.reason, opts.maxQuoteChars).replace(', also when asked again', '')} Asking again failed: ${repairError}`
           : f.reason === 'QUOTE_NOT_FOUND'
             ? 'Its quote could not be found in the rulebook, and no exact passage was found when asked again.'
-            : DETAIL[f.reason],
+            : detailFor(f.reason, opts.maxQuoteChars),
         section: sectionNo,
         quote: cleanQuote(f.draft.quote),
       });

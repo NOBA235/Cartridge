@@ -126,7 +126,7 @@ export function checkProposal(raw: unknown, ctx: ProposalContext): ProposalCheck
     return {
       ok: false,
       reason: 'QUOTE_TOO_LONG',
-      detail: 'Its quote was longer than 300 characters.',
+      detail: `Its quote was longer than ${config.compile.maxQuoteChars} characters.`,
     };
   }
   const v = verifyQuote(quote, prepared);

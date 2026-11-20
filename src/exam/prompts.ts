@@ -11,7 +11,7 @@ import { NONE } from '@/cartridge/types';
 import { asPublic } from '@/privacy';
 
 export const EXAM_PROMPT = asPublic(
-  `Below are {{n}} rules from a field reference, and the titles of all rules. Write exam questions a field worker might ask in plain words. For each listed rule write one question whose answer is that rule. If a rule is listed more than once, word each of its questions differently. Vary the wording. Do not mention rule IDs or copy the quote. If a rule has a calc, include a realistic quantity in the question. Also write {{m}} questions that sound related but are NOT answered by any rule in the full title list (expectedRuleId = NONE).
+  `Below are {{n}} rules from a public standard reference, and the titles of all rules. Write exam questions an engineer or practitioner might ask in plain words. For each listed rule write one question whose answer is that rule. If a rule is listed more than once, word each of its questions differently. Vary the wording. Do not mention rule IDs or copy the quote. If a rule has a calc, include a realistic quantity in the question. Also write {{m}} questions that sound related but are NOT answered by any rule in the full title list (expectedRuleId = NONE).
 
 Return JSON only: {"questions": [{"question": string, "expectedRuleId": string}]}.
 

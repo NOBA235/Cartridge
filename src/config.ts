@@ -2,10 +2,12 @@
  * App configuration. Cloud model names live here and nowhere else.
  *
  * Model names checked against https://firebase.google.com/docs/ai-logic/models
- * on 2026-11-14. Both are listed as Stable with no shutdown date:
- * - gemini-3.8-flash: used for one-off, quality-sensitive work (compile, exam, tutor).
- * - gemini-3.5-flash-lite: the SDK's default cloud model; used for quick tasks.
- * Re-check that page before the submission.
+ * and verified live via `npm run smoke:cloud` on 2026-11-20:
+ * - gemini-3.5-flash-lite: Stable SDK default with generous Free Tier quota and
+ *   low latency for structured JSON tasks (compile, exam, tutor, answer, bench).
+ *   (gemini-3.8-flash has a 20 req/day Free Tier cap on Spark projects and hit
+ *   429 RESOURCE_EXHAUSTED during multi-section compilation; override via
+ *   Remote Config when higher quota is provisioned.)
  */
 export type CloudTaskName =
   'DEV_PING' | 'COMPILE' | 'REPAIR_QUOTE' | 'EXAM' | 'TUTOR' | 'ANSWER' | 'EDGE_BENCH';
@@ -13,12 +15,12 @@ export type CloudTaskName =
 export const config = {
   cloudModels: {
     DEV_PING: 'gemini-3.5-flash-lite',
-    COMPILE: 'gemini-3.8-flash',
-    REPAIR_QUOTE: 'gemini-3.8-flash',
-    EXAM: 'gemini-3.8-flash',
-    TUTOR: 'gemini-3.8-flash',
+    COMPILE: 'gemini-3.5-flash-lite',
+    REPAIR_QUOTE: 'gemini-3.5-flash-lite',
+    EXAM: 'gemini-3.5-flash-lite',
+    TUTOR: 'gemini-3.5-flash-lite',
     ANSWER: 'gemini-3.5-flash-lite',
-    EDGE_BENCH: 'gemini-3.8-flash',
+    EDGE_BENCH: 'gemini-3.5-flash-lite',
   } satisfies Record<CloudTaskName, string>,
   /** Retries after the first attempt, so 3 attempts at most. */
   cloudMaxRetries: 2,
@@ -77,10 +79,12 @@ export const config = {
   /** Making a cartridge. */
   compile: {
     maxRules: 120,
-    maxChunkChars: 30_000,
+    /** Smaller sections keep structured JSON output fast and avoid output-token truncation on dense standards. */
+    maxChunkChars: 12_000,
     /** Title word similarity (0 to 1) at or above which two rules count as duplicates. */
     titleSimilarity: 0.8,
-    maxQuoteChars: 300,
+    /** Real standards (e.g. OWASP ASVS, NIST) regularly have 310–480 char verbatim requirements. */
+    maxQuoteChars: 500,
     /** Above this many sections, the user confirms the number of cloud requests first. */
     confirmAboveSections: 20,
   },
