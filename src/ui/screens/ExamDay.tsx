@@ -16,6 +16,7 @@ import { ExamReportCard } from '@/ui/components/ExamReportCard';
 import { useConnectivity } from '@/ui/components/NoSignalSwitch';
 import { RuleDots } from '@/ui/components/RuleDots';
 import { ScoreRing } from '@/ui/components/ScoreRing';
+import { StarterButton } from '@/ui/components/StarterButton';
 import { useChosenCartridgeId } from '@/ui/activeCartridge';
 import { useCartridges, useLoadedCartridge } from '@/ui/hooks/useCartridges';
 import { Button, buttonVariants } from '@/ui/primitives/button';
@@ -326,16 +327,20 @@ export function ExamDay() {
             Cartridges are not available: {error}
           </p>
         )}
-        <p className="text-sm">
-          There is no cartridge on this device yet. Load a rulebook and make its cartridge first.
+        <p className="text-sm text-muted-foreground">
+          There is no cartridge on this device yet. Load the bundled OWASP ASVS 5.0 starter
+          standard, or upload your own public rulebook.
         </p>
-        <a
-          href="/load"
-          onClick={linkHandler('/load')}
-          className={buttonVariants({ className: 'self-start' })}
-        >
-          Load a rulebook
-        </a>
+        <div className="flex flex-wrap items-start gap-2">
+          <StarterButton />
+          <a
+            href="/load"
+            onClick={linkHandler('/load')}
+            className={buttonVariants({ variant: 'outline' })}
+          >
+            Load your own rulebook
+          </a>
+        </div>
       </section>
     );
   }

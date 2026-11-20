@@ -1,0 +1,19 @@
+Starter Standard Attribution
+============================
+
+File: owasp-asvs-5.0-architecture.md
+Source: OWASP Application Security Verification Standard (ASVS) 5.0
+        Chapters V7 (Session Management), V8 (Authorization),
+        V12 (Secure Communication), V14 (Data Protection), and
+        V16 (Security Logging and Error Handling).
+Upstream: https://github.com/OWASP/ASVS (5.0/en)
+Licence: Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
+         https://creativecommons.org/licenses/by-sa/4.0/
+
+File: owasp-asvs-5.0.cartridge.json
+Derived from owasp-asvs-5.0-architecture.md via Cartridge's Firebase AI Logic
+compiler, with every rule quote verified verbatim against the source excerpt.
+Distributed under the same CC BY-SA 4.0 licence.
+
+Note: Cartridge's own source code is licensed under Apache-2.0 (see /LICENSE).
+These bundled starter standard assets remain licensed under CC BY-SA 4.0.

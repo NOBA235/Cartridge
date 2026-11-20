@@ -1,0 +1,1447 @@
+{
+  "format": "cartridge",
+  "formatVersion": 1,
+  "cartridge": {
+    "id": "ctg-1be2c28e-480d-4a25-a467-d485ebd67141",
+    "name": "owasp-asvs-5.0-architecture.md",
+    "version": 1,
+    "createdAt": "2026-11-20T13:42:24.454Z",
+    "sourceHash": "4102abc724a232b156ef8281ec413611e55933199e08f431b59e07eaa799cae3",
+    "sourceName": "owasp-asvs-5.0-architecture.md",
+    "sourceLicence": "CC BY-SA 4.0",
+    "rules": [
+      {
+        "id": "R001",
+        "title": "Document session inactivity timeout and absolute maximum lifetime",
+        "when": "Designing or implementing session management mechanisms for the application",
+        "then": "Verify that the user's session inactivity timeout and absolute maximum session lifetime are documented, are appropriate in combination with other controls, and that the documentation includes justification for any deviations from NIST SP 800-63B re-authentication requirements.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "session timeout",
+          "absolute maximum lifetime",
+          "documentation",
+          "nist sp 800-63b",
+          "inactivity timeout",
+          "re-authentication"
+        ],
+        "source": {
+          "section": "V7.1 Session Management Documentation",
+          "quote": "Verify that the user's session inactivity timeout and absolute maximum session lifetime are documented, are appropriate in combination with other controls, and that the documentation includes justification for any deviations from NIST SP 800-63B re-authentication requirements."
+        }
+      },
+      {
+        "id": "R002",
+        "title": "Document concurrent session limits",
+        "when": "Defining session policies and concurrent user access limits for accounts",
+        "then": "Verify that the documentation defines how many concurrent (parallel) sessions are allowed for one account as well as the intended behaviors and actions to be taken when the maximum number of active sessions is reached.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "concurrent sessions",
+          "parallel sessions",
+          "account limits",
+          "documentation",
+          "maximum sessions"
+        ],
+        "source": {
+          "section": "V7.1 Session Management Documentation",
+          "quote": "Verify that the documentation defines how many concurrent (parallel) sessions are allowed for one account as well as the intended behaviors and actions to be taken when the maximum number of active sessions is reached."
+        }
+      },
+      {
+        "id": "R003",
+        "title": "Document federated identity and SSO session systems",
+        "when": "Integrating federated identity management or SSO ecosystems with application sessions",
+        "then": "Verify that all systems that create and manage user sessions as part of a federated identity management ecosystem (such as SSO systems) are documented along with controls to coordinate session lifetimes, termination, and any other conditions that require re-authentication.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "federated identity",
+          "sso systems",
+          "session lifetimes",
+          "termination",
+          "re-authentication",
+          "documentation"
+        ],
+        "source": {
+          "section": "V7.1 Session Management Documentation",
+          "quote": "Verify that all systems that create and manage user sessions as part of a federated identity management ecosystem (such as SSO systems) are documented along with controls to coordinate session lifetimes, termination, and any other conditions that require re-authentication."
+        }
+      },
+      {
+        "id": "R004",
+        "title": "Perform session token verification using a trusted backend service",
+        "when": "Validating user session tokens within the application architecture",
+        "then": "Verify that the application performs all session token verification using a trusted, backend service.",
+        "exceptions": [],
+        "severity": "critical",
+        "keywords": [
+          "session token verification",
+          "trusted backend service",
+          "backend",
+          "session validation"
+        ],
+        "source": {
+          "section": "V7.2 Fundamental Session Management Security",
+          "quote": "Verify that the application performs all session token verification using a trusted, backend service."
+        }
+      },
+      {
+        "id": "R005",
+        "title": "Use dynamically generated self-contained or reference tokens",
+        "when": "Selecting or implementing session management token types",
+        "then": "Verify that the application uses either self-contained or reference tokens that are dynamically generated for session management, i.e. not using static API secrets and keys.",
+        "exceptions": [],
+        "severity": "critical",
+        "keywords": [
+          "self-contained tokens",
+          "reference tokens",
+          "dynamic generation",
+          "no static keys",
+          "session management"
+        ],
+        "source": {
+          "section": "V7.2 Fundamental Session Management Security",
+          "quote": "Verify that the application uses either self-contained or reference tokens that are dynamically generated for session management, i.e. not using static API secrets and keys."
+        }
+      },
+      {
+        "id": "R006",
+        "title": "Ensure reference tokens possess at least 128 bits of entropy",
+        "when": "Using reference tokens to represent user sessions",
+        "then": "Verify that if reference tokens are used to represent user sessions, they are unique and generated using a cryptographically secure pseudo-random number generator (CSPRNG) and possess at least 128 bits of entropy.",
+        "exceptions": [],
+        "severity": "critical",
+        "keywords": [
+          "reference tokens",
+          "csprng",
+          "128 bits entropy",
+          "cryptographic randomness",
+          "unique tokens"
+        ],
+        "source": {
+          "section": "V7.2 Fundamental Session Management Security",
+          "quote": "Verify that if reference tokens are used to represent user sessions, they are unique and generated using a cryptographically secure pseudo-random number generator (CSPRNG) and possess at least 128 bits of entropy."
+        }
+      },
+      {
+        "id": "R007",
+        "title": "Generate new session token on authentication and re-authentication",
+        "when": "A user undergoes user authentication or re-authentication",
+        "then": "Verify that the application generates a new session token on user authentication, including re-authentication, and terminates the current session token.",
+        "exceptions": [],
+        "severity": "critical",
+        "keywords": [
+          "session regeneration",
+          "authentication",
+          "re-authentication",
+          "terminate current token",
+          "new session token"
+        ],
+        "source": {
+          "section": "V7.2 Fundamental Session Management Security",
+          "quote": "Verify that the application generates a new session token on user authentication, including re-authentication, and terminates the current session token."
+        }
+      },
+      {
+        "id": "R008",
+        "title": "Enforce inactivity timeout based on risk analysis",
+        "when": "Maintaining active user sessions over time",
+        "then": "Verify that there is an inactivity timeout such that re-authentication is enforced according to risk analysis and documented security decisions.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "inactivity timeout",
+          "re-authentication",
+          "risk analysis",
+          "session timeout"
+        ],
+        "source": {
+          "section": "V7.3 Session Timeout",
+          "quote": "Verify that there is an inactivity timeout such that re-authentication is enforced according to risk analysis and documented security decisions."
+        }
+      },
+      {
+        "id": "R009",
+        "title": "Enforce absolute maximum session lifetime",
+        "when": "Managing the total lifespan of user sessions",
+        "then": "Verify that there is an absolute maximum session lifetime such that re-authentication is enforced according to risk analysis and documented security decisions.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "maximum session lifetime",
+          "re-authentication",
+          "risk analysis",
+          "session timeout"
+        ],
+        "source": {
+          "section": "V7.3 Session Timeout",
+          "quote": "Verify that there is an absolute maximum session lifetime such that re-authentication is enforced according to risk analysis and documented security decisions."
+        }
+      },
+      {
+        "id": "R010",
+        "title": "Disallow further use of session upon termination",
+        "when": "Session termination is triggered via logout or expiration",
+        "then": "Verify that when session termination is triggered (such as logout or expiration), the application disallows any further use of the session. For reference tokens or stateful sessions, this means invalidating the session data at the application backend. Applications using self-contained tokens will need a solution such as maintaining a list of terminated tokens, disallowing tokens produced before a per-user date and time or rotating a per-user signing key.",
+        "exceptions": [],
+        "severity": "critical",
+        "keywords": [
+          "session termination",
+          "logout",
+          "expiration",
+          "invalidation",
+          "self-contained tokens",
+          "reference tokens"
+        ],
+        "source": {
+          "section": "V7.4 Session Termination",
+          "quote": "Verify that when session termination is triggered (such as logout or expiration), the application disallows any further use of the session. For reference tokens or stateful sessions, this means invalidating the session data at the application backend. Applications using self-contained tokens will need a solution such as maintaining a list of terminated tokens, disallowing tokens produced before a per-user date and time or rotating a per-user signing key."
+        }
+      },
+      {
+        "id": "R011",
+        "title": "Terminate active sessions when user account is disabled or deleted",
+        "when": "A user account is disabled or deleted (such as an employee leaving the company)",
+        "then": "Verify that the application terminates all active sessions when a user account is disabled or deleted (such as an employee leaving the company).",
+        "exceptions": [],
+        "severity": "critical",
+        "keywords": [
+          "account deletion",
+          "account disabled",
+          "terminate sessions",
+          "lifecycle management"
+        ],
+        "source": {
+          "section": "V7.4 Session Termination",
+          "quote": "Verify that the application terminates all active sessions when a user account is disabled or deleted (such as an employee leaving the company)."
+        }
+      },
+      {
+        "id": "R012",
+        "title": "Option to terminate other active sessions after authentication factor change",
+        "when": "A successful change or removal of any authentication factor occurs (including password change via reset or recovery and MFA settings update)",
+        "then": "Verify that the application gives the option to terminate all other active sessions after a successful change or removal of any authentication factor (including password change via reset or recovery and, if present, an MFA settings update).",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "terminate other sessions",
+          "authentication factor change",
+          "password change",
+          "mfa update",
+          "session security"
+        ],
+        "source": {
+          "section": "V7.4 Session Termination",
+          "quote": "Verify that the application gives the option to terminate all other active sessions after a successful change or removal of any authentication factor (including password change via reset or recovery and, if present, an MFA settings update)."
+        }
+      },
+      {
+        "id": "R013",
+        "title": "Provide easy and visible logout access on authenticated pages",
+        "when": "Rendering pages that require authentication",
+        "then": "Verify that all pages that require authentication have easy and visible access to logout functionality.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "logout",
+          "visible access",
+          "authenticated pages",
+          "session termination"
+        ],
+        "source": {
+          "section": "V7.4 Session Termination",
+          "quote": "Verify that all pages that require authentication have easy and visible access to logout functionality."
+        }
+      },
+      {
+        "id": "R014",
+        "title": "Administrator capability to terminate active sessions",
+        "when": "Administrators need to manage user sessions",
+        "then": "Verify that application administrators are able to terminate active sessions for an individual user or for all users.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "administrator",
+          "terminate sessions",
+          "individual user",
+          "all users",
+          "session management"
+        ],
+        "source": {
+          "section": "V7.4 Session Termination",
+          "quote": "Verify that application administrators are able to terminate active sessions for an individual user or for all users."
+        }
+      },
+      {
+        "id": "R015",
+        "title": "Require re-authentication for sensitive account attribute modifications",
+        "when": "Modifying sensitive account attributes such as email address, phone number, MFA configuration, or account recovery information",
+        "then": "Verify that the application requires full re-authentication before allowing modifications to sensitive account attributes which may affect authentication such as email address, phone number, MFA configuration, or other information used in account recovery.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "re-authentication",
+          "sensitive attributes",
+          "email change",
+          "phone number",
+          "mfa configuration",
+          "account recovery"
+        ],
+        "source": {
+          "section": "V7.5 Defenses Against Session Abuse",
+          "quote": "Verify that the application requires full re-authentication before allowing modifications to sensitive account attributes which may affect authentication such as email address, phone number, MFA configuration, or other information used in account recovery."
+        }
+      },
+      {
+        "id": "R016",
+        "title": "Allow users to view and terminate active sessions",
+        "when": "Users access session management controls and re-authenticate with at least one factor",
+        "then": "Verify that users are able to view and (having authenticated again with at least one factor) terminate any or all currently active sessions.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "view sessions",
+          "terminate sessions",
+          "active sessions",
+          "re-authentication",
+          "user control"
+        ],
+        "source": {
+          "section": "V7.5 Defenses Against Session Abuse",
+          "quote": "Verify that users are able to view and (having authenticated again with at least one factor) terminate any or all currently active sessions."
+        }
+      },
+      {
+        "id": "R017",
+        "title": "Require step-up authentication for highly sensitive transactions",
+        "when": "Performing highly sensitive transactions or operations",
+        "then": "Verify that the application requires further authentication with at least one factor or secondary verification before performing highly sensitive transactions or operations.",
+        "exceptions": [],
+        "severity": "critical",
+        "keywords": [
+          "step-up authentication",
+          "secondary verification",
+          "sensitive transactions",
+          "additional factor"
+        ],
+        "source": {
+          "section": "V7.5 Defenses Against Session Abuse",
+          "quote": "Verify that the application requires further authentication with at least one factor or secondary verification before performing highly sensitive transactions or operations."
+        }
+      },
+      {
+        "id": "R018",
+        "title": "Federated session lifetime and termination coordination",
+        "when": "Implementing Relying Party (RP) or Identity Provider (IdP) federation behavior",
+        "then": "Verify that session lifetime and termination between Relying Parties (RPs) and Identity Providers (IdPs) behave as documented, requiring re-authentication as necessary such as when the maximum time between IdP authentication events is reached.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "federated session",
+          "relying party",
+          "identity provider",
+          "session lifetime",
+          "termination",
+          "re-authentication"
+        ],
+        "source": {
+          "section": "V7.6 Federated Re-authentication",
+          "quote": "Verify that session lifetime and termination between Relying Parties (RPs) and Identity Providers (IdPs) behave as documented, requiring re-authentication as necessary such as when the maximum time between IdP authentication events is reached."
+        }
+      },
+      {
+        "id": "R019",
+        "title": "Require user consent or explicit action for session creation",
+        "when": "Creating a new application session",
+        "then": "Verify that creation of a session requires either the user's consent or an explicit action, preventing the creation of new application sessions without user interaction.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "session creation",
+          "user consent",
+          "explicit action",
+          "user interaction"
+        ],
+        "source": {
+          "section": "V7.6 Federated Re-authentication",
+          "quote": "Verify that creation of a session requires either the user's consent or an explicit action, preventing the creation of new application sessions without user interaction."
+        }
+      },
+      {
+        "id": "R020",
+        "title": "Document function-level and data-specific authorization rules",
+        "when": "Establishing authorization requirements and access control documentation",
+        "then": "Verify that authorization documentation defines rules for restricting function-level and data-specific access based on consumer permissions and resource attributes.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "authorization documentation",
+          "function-level access",
+          "data-specific access",
+          "consumer permissions",
+          "resource attributes"
+        ],
+        "source": {
+          "section": "V8.1 Authorization Documentation",
+          "quote": "Verify that authorization documentation defines rules for restricting function-level and data-specific access based on consumer permissions and resource attributes."
+        }
+      },
+      {
+        "id": "R021",
+        "title": "Document field-level access restriction rules",
+        "when": "Defining field-level read and write access rules based on consumer permissions and resource attributes",
+        "then": "Verify that authorization documentation defines rules for field-level access restrictions (both read and write) based on consumer permissions and resource attributes. Note that these rules might depend on other attribute values of the relevant data object, such as state or status.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "field-level access",
+          "read write restrictions",
+          "authorization documentation",
+          "resource attributes",
+          "read and write",
+          "consumer permissions"
+        ],
+        "source": {
+          "section": "V8.1 Authorization Documentation",
+          "quote": "Verify that authorization documentation defines rules for field-level access restrictions (both read and write) based on consumer permissions and resource attributes. Note that these rules might depend on other attribute values of the relevant data object, such as state or status."
+        }
+      },
+      {
+        "id": "R022",
+        "title": "Document environmental and contextual attributes for security decisions",
+        "when": "Configuring environmental or contextual security factors in the application",
+        "then": "Verify that the application's documentation defines the environmental and contextual attributes (including but not limited to, time of day, user location, IP address, or device) that are used in the application to make security decisions, including those pertaining to authentication and authorization.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "environmental attributes",
+          "contextual attributes",
+          "security decisions",
+          "documentation",
+          "authentication",
+          "authorization",
+          "time of day",
+          "user location"
+        ],
+        "source": {
+          "section": "V8.1 Authorization Documentation",
+          "quote": "Verify that the application's documentation defines the environmental and contextual attributes (including but not limited to, time of day, user location, IP address, or device) that are used in the application to make security decisions, including those pertaining to authentication and authorization."
+        }
+      },
+      {
+        "id": "R023",
+        "title": "Document usage of environmental and contextual factors in decision-making",
+        "when": "Documenting authentication and authorization decision-making mechanisms",
+        "then": "Verify that authentication and authorization documentation defines how environmental and contextual factors are used in decision-making, in addition to function-level, data-specific, and field-level authorization. This should include the attributes evaluated, thresholds for risk, and actions taken (e.g., allow, challenge, deny, step-up authentication).",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "environmental factors",
+          "contextual factors",
+          "decision-making",
+          "risk thresholds",
+          "documentation",
+          "authorization",
+          "actions taken",
+          "authentication documentation"
+        ],
+        "source": {
+          "section": "V8.1 Authorization Documentation",
+          "quote": "Verify that authentication and authorization documentation defines how environmental and contextual factors are used in decision-making, in addition to function-level, data-specific, and field-level authorization. This should include the attributes evaluated, thresholds for risk, and actions taken (e.g., allow, challenge, deny, step-up authentication)."
+        }
+      },
+      {
+        "id": "R024",
+        "title": "Restrict function-level access to consumers with explicit permissions",
+        "when": "Ensuring function-level access control in the application",
+        "then": "Verify that the application ensures that function-level access is restricted to consumers with explicit permissions.",
+        "exceptions": [],
+        "severity": "critical",
+        "keywords": [
+          "function-level access",
+          "explicit permissions",
+          "consumer access",
+          "authorization control"
+        ],
+        "source": {
+          "section": "V8.2 General Authorization Design",
+          "quote": "Verify that the application ensures that function-level access is restricted to consumers with explicit permissions."
+        }
+      },
+      {
+        "id": "R025",
+        "title": "Restrict data-specific access to mitigate IDOR and BOLA",
+        "when": "Restricting access to specific data items to prevent insecure direct object reference and broken object level authorization",
+        "then": "Verify that the application ensures that data-specific access is restricted to consumers with explicit permissions to specific data items to mitigate insecure direct object reference (IDOR) and broken object level authorization (BOLA).",
+        "exceptions": [],
+        "severity": "critical",
+        "keywords": [
+          "data-specific access",
+          "explicit permissions",
+          "idor",
+          "bola",
+          "object level authorization"
+        ],
+        "source": {
+          "section": "V8.2 General Authorization Design",
+          "quote": "Verify that the application ensures that data-specific access is restricted to consumers with explicit permissions to specific data items to mitigate insecure direct object reference (IDOR) and broken object level authorization (BOLA)."
+        }
+      },
+      {
+        "id": "R026",
+        "title": "Restrict field-level access to mitigate BOPLA",
+        "when": "Restricting access to specific fields to mitigate broken object property level authorization",
+        "then": "Verify that the application ensures that field-level access is restricted to consumers with explicit permissions to specific fields to mitigate broken object property level authorization (BOPLA).",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "field-level access",
+          "explicit permissions",
+          "bopla",
+          "object property level authorization"
+        ],
+        "source": {
+          "section": "V8.2 General Authorization Design",
+          "quote": "Verify that the application ensures that field-level access is restricted to consumers with explicit permissions to specific fields to mitigate broken object property level authorization (BOPLA)."
+        }
+      },
+      {
+        "id": "R027",
+        "title": "Implement adaptive security controls based on context",
+        "when": "Applying adaptive security controls based on environmental and contextual attributes during new and existing sessions",
+        "then": "Verify that adaptive security controls based on a consumer's environmental and contextual attributes (such as time of day, location, IP address, or device) are implemented for authentication and authorization decisions, as defined in the application's documentation.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "adaptive security controls",
+          "contextual attributes",
+          "authentication decisions",
+          "authorization decisions",
+          "session security"
+        ],
+        "source": {
+          "section": "V8.2 General Authorization Design",
+          "quote": "Verify that adaptive security controls based on a consumer's environmental and contextual attributes (such as time of day, location, IP address, or device) are implemented for authentication and authorization decisions, as defined in the application's documentation. These controls must be applied when the consumer tries to start a new session and also during an existing session."
+        }
+      },
+      {
+        "id": "R028",
+        "title": "Enforce authorization rules at a trusted service layer",
+        "when": "Enforcing application authorization rules to prevent manipulation by untrusted consumers",
+        "then": "Verify that the application enforces authorization rules at a trusted service layer and doesn't rely on controls that an untrusted consumer could manipulate, such as client-side JavaScript.",
+        "exceptions": [],
+        "severity": "critical",
+        "keywords": [
+          "trusted service layer",
+          "authorization rules",
+          "client-side javascript",
+          "untrusted consumer"
+        ],
+        "source": {
+          "section": "V8.3 Operation Level Authorization",
+          "quote": "Verify that the application enforces authorization rules at a trusted service layer and doesn't rely on controls that an untrusted consumer could manipulate, such as client-side JavaScript."
+        }
+      },
+      {
+        "id": "R029",
+        "title": "Apply changes to authorization values immediately",
+        "when": "Applying changes to values on which authorization decisions are made",
+        "then": "Verify that changes to values on which authorization decisions are made are applied immediately.",
+        "exceptions": [
+          "Where changes cannot be applied immediately, such as when relying on data in self-contained tokens, there must be mitigating controls to alert when a consumer performs an action when they are no longer authorized to do so and revert the change."
+        ],
+        "severity": "major",
+        "keywords": [
+          "authorization decisions",
+          "applied immediately",
+          "self-contained tokens",
+          "mitigating controls"
+        ],
+        "source": {
+          "section": "V8.3 Operation Level Authorization",
+          "quote": "Verify that changes to values on which authorization decisions are made are applied immediately. Where changes cannot be applied immediately, (such as when relying on data in self-contained tokens), there must be mitigating controls to alert when a consumer performs an action when they are no longer authorized to do so and revert the change. Note that this alternative would not mitigate information leakage."
+        }
+      },
+      {
+        "id": "R030",
+        "title": "Base object access on originating subject permissions",
+        "when": "Accessing objects via intermediaries or services acting on behalf of a consumer",
+        "then": "Verify that access to an object is based on the originating subject's (e.g. consumer's) permissions, not on the permissions of any intermediary or service acting on their behalf.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "originating subject",
+          "consumer permissions",
+          "intermediary service",
+          "self-contained token",
+          "permission decisions"
+        ],
+        "source": {
+          "section": "V8.3 Operation Level Authorization",
+          "quote": "Verify that access to an object is based on the originating subject's (e.g. consumer's) permissions, not on the permissions of any intermediary or service acting on their behalf. For example, if a consumer calls a web service using a self-contained token for authentication, and the service then requests data from a different service, the second service will use the consumer's token, rather than a machine-to-machine token from the first service, to make permission decisions."
+        }
+      },
+      {
+        "id": "R031",
+        "title": "Use cross-tenant controls in multi-tenant applications",
+        "when": "Developing multi-tenant applications to prevent cross-tenant interaction without permissions",
+        "then": "Verify that multi-tenant applications use cross-tenant controls to ensure consumer operations will never affect tenants with which they do not have permissions to interact.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "multi-tenant applications",
+          "cross-tenant controls",
+          "consumer operations",
+          "tenant permissions"
+        ],
+        "source": {
+          "section": "V8.4 Other Authorization Considerations",
+          "quote": "Verify that multi-tenant applications use cross-tenant controls to ensure consumer operations will never affect tenants with which they do not have permissions to interact."
+        }
+      },
+      {
+        "id": "R032",
+        "title": "Incorporate multiple security layers for administrative interfaces",
+        "when": "Securing access to administrative interfaces",
+        "then": "Verify that access to administrative interfaces incorporates multiple layers of security, including continuous consumer identity verification, device security posture assessment, and contextual risk analysis, ensuring that network location or trusted endpoints are not the sole factors for authorization even though they may reduce the likelihood of unauthorized access.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "administrative interfaces",
+          "layers of security",
+          "identity verification",
+          "device security posture",
+          "contextual risk analysis"
+        ],
+        "source": {
+          "section": "V8.4 Other Authorization Considerations",
+          "quote": "Verify that access to administrative interfaces incorporates multiple layers of security, including continuous consumer identity verification, device security posture assessment, and contextual risk analysis, ensuring that network location or trusted endpoints are not the sole factors for authorization even though they may reduce the likelihood of unauthorized access."
+        }
+      },
+      {
+        "id": "R033",
+        "title": "Enable only latest recommended TLS protocol versions",
+        "when": "Configuring TLS protocol versions in the application",
+        "then": "Verify that only the latest recommended versions of the TLS protocol are enabled, such as TLS 1.2 and TLS 1.3. The latest version of the TLS protocol must be the preferred option.",
+        "exceptions": [],
+        "severity": "critical",
+        "keywords": [
+          "tls protocol",
+          "tls 1.2",
+          "tls 1.3",
+          "encrypted transport",
+          "recommended versions"
+        ],
+        "source": {
+          "section": "V12.1 General TLS Security Guidance",
+          "quote": "Verify that only the latest recommended versions of the TLS protocol are enabled, such as TLS 1.2 and TLS 1.3. The latest version of the TLS protocol must be the preferred option."
+        }
+      },
+      {
+        "id": "R034",
+        "title": "Enable only recommended cipher suites with forward secrecy",
+        "when": "Configuring cipher suites for applications",
+        "then": "Verify that only recommended cipher suites are enabled, with the strongest cipher suites set as preferred. L3 applications must only support cipher suites which provide forward secrecy.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "cipher suites",
+          "forward secrecy",
+          "strongest ciphers",
+          "tls configuration"
+        ],
+        "source": {
+          "section": "V12.1 General TLS Security Guidance",
+          "quote": "Verify that only recommended cipher suites are enabled, with the strongest cipher suites set as preferred. L3 applications must only support cipher suites which provide forward secrecy."
+        }
+      },
+      {
+        "id": "R035",
+        "title": "Validate mTLS client certificates before use",
+        "when": "Using mTLS client certificate identity for authentication or authorization",
+        "then": "Verify that the application validates that mTLS client certificates are trusted before using the certificate identity for authentication or authorization.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "mtls",
+          "client certificates",
+          "certificate identity",
+          "authentication",
+          "authorization"
+        ],
+        "source": {
+          "section": "V12.1 General TLS Security Guidance",
+          "quote": "Verify that the application validates that mTLS client certificates are trusted before using the certificate identity for authentication or authorization."
+        }
+      },
+      {
+        "id": "R036",
+        "title": "Enable proper certificate revocation mechanisms",
+        "when": "Configuring TLS certificate revocation such as OCSP Stapling",
+        "then": "Verify that proper certification revocation, such as Online Certificate Status Protocol (OCSP) Stapling, is enabled and configured.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "certification revocation",
+          "ocsp stapling",
+          "online certificate status protocol",
+          "tls settings"
+        ],
+        "source": {
+          "section": "V12.1 General TLS Security Guidance",
+          "quote": "Verify that proper certification revocation, such as Online Certificate Status Protocol (OCSP) Stapling, is enabled and configured."
+        }
+      },
+      {
+        "id": "R037",
+        "title": "Enable Encrypted Client Hello in TLS settings",
+        "when": "Configuring application TLS settings to prevent sensitive metadata exposure during handshake",
+        "then": "Verify that Encrypted Client Hello (ECH) is enabled in the application's TLS settings to prevent exposure of sensitive metadata, such as the Server Name Indication (SNI), during TLS handshake processes.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "encrypted client hello",
+          "ech",
+          "server name indication",
+          "sni",
+          "tls handshake"
+        ],
+        "source": {
+          "section": "V12.1 General TLS Security Guidance",
+          "quote": "Verify that Encrypted Client Hello (ECH) is enabled in the application's TLS settings to prevent exposure of sensitive metadata, such as the Server Name Indication (SNI), during TLS handshake processes."
+        }
+      },
+      {
+        "id": "R038",
+        "title": "Use TLS for all client and external service connectivity",
+        "when": "Establishing connectivity between a client and external facing HTTP-based services",
+        "then": "Verify that TLS is used for all connectivity between a client and external facing, HTTP-based services, and does not fall back to insecure or unencrypted communications.",
+        "exceptions": [],
+        "severity": "critical",
+        "keywords": [
+          "tls",
+          "connectivity",
+          "client",
+          "external facing services",
+          "http-based services"
+        ],
+        "source": {
+          "section": "V12.2 HTTPS Communication with External Facing Services",
+          "quote": "Verify that TLS is used for all connectivity between a client and external facing, HTTP-based services, and does not fall back to insecure or unencrypted communications."
+        }
+      },
+      {
+        "id": "R039",
+        "title": "Use publicly trusted TLS certificates for external services",
+        "when": "Deploying certificates for external facing services",
+        "then": "Verify that external facing services use publicly trusted TLS certificates.",
+        "exceptions": [],
+        "severity": "critical",
+        "keywords": [
+          "external facing services",
+          "publicly trusted certificates",
+          "tls certificates"
+        ],
+        "source": {
+          "section": "V12.2 HTTPS Communication with External Facing Services",
+          "quote": "Verify that external facing services use publicly trusted TLS certificates."
+        }
+      },
+      {
+        "id": "R040",
+        "title": "Use encrypted protocols for all inbound and outbound connections",
+        "when": "Making inbound and outbound connections to and from the application",
+        "then": "Verify that an encrypted protocol such as TLS is used for all inbound and outbound connections to and from the application, including monitoring systems, management tools, remote access and SSH, middleware, databases, mainframes, partner systems, or external APIs.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "encrypted protocol",
+          "tls",
+          "inbound connections",
+          "outbound connections",
+          "databases"
+        ],
+        "source": {
+          "section": "V12.3 General Service to Service Communication Security",
+          "quote": "Verify that an encrypted protocol such as TLS is used for all inbound and outbound connections to and from the application, including monitoring systems, management tools, remote access and SSH, middleware, databases, mainframes, partner systems, or external APIs. The server must not fall back to insecure or unencrypted protocols."
+        }
+      },
+      {
+        "id": "R041",
+        "title": "Validate certificates received by TLS clients",
+        "when": "Establishing communication from a TLS client to a TLS server",
+        "then": "Verify that TLS clients validate certificates received before communicating with a TLS server.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "tls clients",
+          "validate certificates",
+          "tls server",
+          "certificate validation"
+        ],
+        "source": {
+          "section": "V12.3 General Service to Service Communication Security",
+          "quote": "Verify that TLS clients validate certificates received before communicating with a TLS server."
+        }
+      },
+      {
+        "id": "R042",
+        "title": "Use transport encryption for internal HTTP-based services",
+        "when": "Connecting between internal HTTP-based services within the application",
+        "then": "Verify that TLS or another appropriate transport encryption mechanism used for all connectivity between internal, HTTP-based services within the application, and does not fall back to insecure or unencrypted communications.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "transport encryption",
+          "tls",
+          "internal services",
+          "http-based services",
+          "connectivity"
+        ],
+        "source": {
+          "section": "V12.3 General Service to Service Communication Security",
+          "quote": "Verify that TLS or another appropriate transport encryption mechanism used for all connectivity between internal, HTTP-based services within the application, and does not fall back to insecure or unencrypted communications."
+        }
+      },
+      {
+        "id": "R043",
+        "title": "Use trusted certificates for internal TLS connections",
+        "when": "Using internal TLS connections between internal services",
+        "then": "Verify that TLS connections between internal services use trusted certificates.",
+        "exceptions": [
+          "Where internally generated or self-signed certificates are used, the consuming service must be configured to only trust specific internal CAs and specific self-signed certificates."
+        ],
+        "severity": "major",
+        "keywords": [
+          "internal services",
+          "trusted certificates",
+          "self-signed certificates",
+          "internal cas"
+        ],
+        "source": {
+          "section": "V12.3 General Service to Service Communication Security",
+          "quote": "Verify that TLS connections between internal services use trusted certificates. Where internally generated or self-signed certificates are used, the consuming service must be configured to only trust specific internal CAs and specific self-signed certificates."
+        }
+      },
+      {
+        "id": "R044",
+        "title": "Use strong authentication for internal service communications",
+        "when": "Communicating internally within a system across microservices or endpoints",
+        "then": "Verify that services communicating internally within a system (intra-service communications) use strong authentication to ensure that each endpoint is verified.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "intra-service communications",
+          "strong authentication",
+          "tls client authentication",
+          "microservice architectures",
+          "service mesh"
+        ],
+        "source": {
+          "section": "V12.3 General Service to Service Communication Security",
+          "quote": "Verify that services communicating internally within a system (intra-service communications) use strong authentication to ensure that each endpoint is verified. Strong authentication methods, such as TLS client authentication, must be employed to ensure identity, using public-key infrastructure and mechanisms that are resistant to replay attacks. For microservice architectures, consider using a service mesh to simplify certificate management and enhance security."
+        }
+      },
+      {
+        "id": "R045",
+        "title": "Identify and classify sensitive data",
+        "when": "Creating and processing sensitive data within the application",
+        "then": "Verify that all sensitive data created and processed by the application has been identified and classified into protection levels.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "sensitive data",
+          "classification",
+          "protection levels",
+          "base64",
+          "jwt",
+          "privacy regulations"
+        ],
+        "source": {
+          "section": "V14.1 Data Protection Documentation",
+          "quote": "Verify that all sensitive data created and processed by the application has been identified and classified into protection levels. This includes data that is only encoded and therefore easily decoded, such as Base64 strings or the plaintext payload inside a JWT. Protection levels need to take into account any data protection and privacy regulations and standards which the application is required to comply with."
+        }
+      },
+      {
+        "id": "R046",
+        "title": "Document protection requirements for sensitive data",
+        "when": "Defining protection levels for sensitive data",
+        "then": "Verify that all sensitive data protection levels have a documented set of protection requirements including encryption, integrity, retention, logging, and access controls.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "protection requirements",
+          "documentation",
+          "encryption",
+          "integrity verification",
+          "retention",
+          "access controls"
+        ],
+        "source": {
+          "section": "V14.1 Data Protection Documentation",
+          "quote": "Verify that all sensitive data protection levels have a documented set of protection requirements. This must include (but not be limited to) requirements related to general encryption, integrity verification, retention, how the data is to be logged, access controls around sensitive data in logs, database-level encryption, privacy and privacy-enhancing technologies to be used, and other confidentiality requirements."
+        }
+      },
+      {
+        "id": "R047",
+        "title": "Transmit sensitive data only in body or headers",
+        "when": "Sending sensitive data to the server",
+        "then": "Verify that sensitive data is only sent to the server in the HTTP message body or header fields, and that the URL and query string do not contain sensitive information.",
+        "exceptions": [],
+        "severity": "critical",
+        "keywords": [
+          "sensitive data",
+          "http message body",
+          "header fields",
+          "url",
+          "query string",
+          "api key",
+          "session token"
+        ],
+        "source": {
+          "section": "V14.2 General Data Protection",
+          "quote": "Verify that sensitive data is only sent to the server in the HTTP message body or header fields, and that the URL and query string do not contain sensitive information, such as an API key or session token."
+        }
+      },
+      {
+        "id": "R048",
+        "title": "Prevent sensitive data caching in server components",
+        "when": "Handling sensitive data across server components",
+        "then": "Verify that the application prevents sensitive data from being cached in server components, such as load balancers and application caches, or ensures that the data is securely purged after use.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "caching",
+          "server components",
+          "load balancers",
+          "application caches",
+          "purge",
+          "sensitive data"
+        ],
+        "source": {
+          "section": "V14.2 General Data Protection",
+          "quote": "Verify that the application prevents sensitive data from being cached in server components, such as load balancers and application caches, or ensures that the data is securely purged after use."
+        }
+      },
+      {
+        "id": "R049",
+        "title": "Prevent sending sensitive data to untrusted parties",
+        "when": "Transmitting data to third parties or user trackers",
+        "then": "Verify that defined sensitive data is not sent to untrusted parties to prevent unwanted collection of data outside of the application's control.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "sensitive data",
+          "untrusted parties",
+          "user trackers",
+          "data collection",
+          "external control"
+        ],
+        "source": {
+          "section": "V14.2 General Data Protection",
+          "quote": "Verify that defined sensitive data is not sent to untrusted parties (e.g., user trackers) to prevent unwanted collection of data outside of the application's control."
+        }
+      },
+      {
+        "id": "R050",
+        "title": "Implement documented protection controls for sensitive data",
+        "when": "Implementing controls for sensitive data",
+        "then": "Verify that controls around sensitive data related to encryption, integrity verification, retention, logging, and privacy technologies are implemented as defined in the documentation.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "controls",
+          "encryption",
+          "integrity verification",
+          "retention",
+          "logging",
+          "documentation"
+        ],
+        "source": {
+          "section": "V14.2 General Data Protection",
+          "quote": "Verify that controls around sensitive data related to encryption, integrity verification, retention, how the data is to be logged, access controls around sensitive data in logs, privacy and privacy-enhancing technologies, are implemented as defined in the documentation for the specific data's protection level."
+        }
+      },
+      {
+        "id": "R051",
+        "title": "Configure caching mechanisms to prevent web cache deception",
+        "when": "Configuring caching mechanisms and handling non-existent files",
+        "then": "Verify that caching mechanisms are configured to only cache responses with expected content types and do not contain sensitive dynamic content, and return 404 or 302 for non-existent files.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "caching mechanisms",
+          "content type",
+          "dynamic content",
+          "web cache deception",
+          "404",
+          "302"
+        ],
+        "source": {
+          "section": "V14.2 General Data Protection",
+          "quote": "Verify that caching mechanisms are configured to only cache responses which have the expected content type for that resource and do not contain sensitive, dynamic content. The web server should return a 404 or 302 response when a non-existent file is accessed rather than returning a different, valid file. This should prevent Web Cache Deception attacks."
+        }
+      },
+      {
+        "id": "R052",
+        "title": "Return minimum required sensitive data and mask complete data",
+        "when": "Returning sensitive data for application functionality",
+        "then": "Verify that the application only returns the minimum required sensitive data, and mask complete data in the user interface unless specifically viewed.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "minimum data",
+          "sensitive data",
+          "masking",
+          "credit card",
+          "user interface"
+        ],
+        "source": {
+          "section": "V14.2 General Data Protection",
+          "quote": "Verify that the application only returns the minimum required sensitive data for the application's functionality. For example, only returning some of the digits of a credit card number and not the full number. If the complete data is required, it should be masked in the user interface unless the user specifically views it."
+        }
+      },
+      {
+        "id": "R053",
+        "title": "Subject sensitive information to data retention classification",
+        "when": "Managing sensitive information storage and lifecycle",
+        "then": "Verify that sensitive information is subject to data retention classification, ensuring outdated or unnecessary data is deleted automatically or on a defined schedule.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "data retention",
+          "classification",
+          "automatic deletion",
+          "schedule",
+          "sensitive information"
+        ],
+        "source": {
+          "section": "V14.2 General Data Protection",
+          "quote": "Verify that sensitive information is subject to data retention classification, ensuring that outdated or unnecessary data is deleted automatically, on a defined schedule, or as the situation requires."
+        }
+      },
+      {
+        "id": "R054",
+        "title": "Remove sensitive information from user-submitted file metadata",
+        "when": "Processing user-submitted files",
+        "then": "Verify that sensitive information is removed from the metadata of user-submitted files unless storage is consented to by the user.",
+        "exceptions": [
+          "unless storage is consented to by the user"
+        ],
+        "severity": "major",
+        "keywords": [
+          "metadata",
+          "user-submitted files",
+          "sensitive information",
+          "removal",
+          "consent"
+        ],
+        "source": {
+          "section": "V14.2 General Data Protection",
+          "quote": "Verify that sensitive information is removed from the metadata of user-submitted files unless storage is consented to by the user."
+        }
+      },
+      {
+        "id": "R055",
+        "title": "Clear authenticated data from client storage on session termination",
+        "when": "Terminating a client session or connection",
+        "then": "Verify that authenticated data is cleared from client storage after the client or session is terminated.",
+        "exceptions": [],
+        "severity": "critical",
+        "keywords": [
+          "authenticated data",
+          "client storage",
+          "browser dom",
+          "session termination",
+          "clear-site-data"
+        ],
+        "source": {
+          "section": "V14.3 Client-side Data Protection",
+          "quote": "Verify that authenticated data is cleared from client storage, such as the browser DOM, after the client or session is terminated. The 'Clear-Site-Data' HTTP response header field may be able to help with this but the client-side should also be able to clear up if the server connection is not available when the session is terminated."
+        }
+      },
+      {
+        "id": "R056",
+        "title": "Set sufficient anti-caching HTTP response header fields",
+        "when": "Configuring HTTP response headers for browsers",
+        "then": "Verify that the application sets sufficient anti-caching HTTP response header fields so that sensitive data is not cached in browsers.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "anti-caching",
+          "http response header",
+          "cache-control",
+          "no-store",
+          "browsers"
+        ],
+        "source": {
+          "section": "V14.3 Client-side Data Protection",
+          "quote": "Verify that the application sets sufficient anti-caching HTTP response header fields (i.e., Cache-Control: no-store) so that sensitive data is not cached in browsers."
+        }
+      },
+      {
+        "id": "R057",
+        "title": "Restrict sensitive data in browser storage",
+        "when": "Storing data in browser storage mechanisms",
+        "then": "Verify that data stored in browser storage does not contain sensitive data, with the exception of session tokens.",
+        "exceptions": [
+          "with the exception of session tokens"
+        ],
+        "severity": "major",
+        "keywords": [
+          "browser storage",
+          "localstorage",
+          "sessionstorage",
+          "indexeddb",
+          "cookies",
+          "session tokens"
+        ],
+        "source": {
+          "section": "V14.3 Client-side Data Protection",
+          "quote": "Verify that data stored in browser storage (such as localStorage, sessionStorage, IndexedDB, or cookies) does not contain sensitive data, with the exception of session tokens."
+        }
+      },
+      {
+        "id": "R058",
+        "title": "Maintain an inventory of application logging",
+        "when": "Documenting logging across the technology stack",
+        "then": "Verify that an inventory exists documenting the logging performed at each layer of the application's technology stack, events, formats, storage, usage, access control, and retention.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "inventory",
+          "logging documentation",
+          "technology stack",
+          "log formats",
+          "access control",
+          "retention"
+        ],
+        "source": {
+          "section": "V16.1 Security Logging Documentation",
+          "quote": "Verify that an inventory exists documenting the logging performed at each layer of the application's technology stack, what events are being logged, log formats, where that logging is stored, how it is used, how access to it is controlled, and for how long logs are kept."
+        }
+      },
+      {
+        "id": "R059",
+        "title": "Include necessary metadata in each log entry",
+        "when": "Generating log entries",
+        "then": "Verify that each log entry includes necessary metadata that allows for a detailed investigation of the timeline when an event happens.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "log entry",
+          "metadata",
+          "timeline",
+          "investigation",
+          "when",
+          "where",
+          "who",
+          "what"
+        ],
+        "source": {
+          "section": "V16.2 General Logging",
+          "quote": "Verify that each log entry includes necessary metadata (such as when, where, who, what) that would allow for a detailed investigation of the timeline when an event happens."
+        }
+      },
+      {
+        "id": "R060",
+        "title": "Synchronize time sources and use UTC timestamps in logs",
+        "when": "Configuring time sources for logging components",
+        "then": "Verify that time sources for all logging components are synchronized, and that timestamps use UTC or include an explicit time zone offset.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "time sources",
+          "synchronized",
+          "timestamps",
+          "utc",
+          "time zone offset",
+          "logging components"
+        ],
+        "source": {
+          "section": "V16.2 General Logging",
+          "quote": "Verify that time sources for all logging components are synchronized, and that timestamps in security event metadata use UTC or include an explicit time zone offset. UTC is recommended to ensure consistency across distributed systems and to prevent confusion during daylight saving time transitions."
+        }
+      },
+      {
+        "id": "R061",
+        "title": "Restrict log storage and broadcast destinations to inventory",
+        "when": "Storing or broadcasting application logs",
+        "then": "Verify that the application only stores or broadcasts logs to the files and services that are documented in the log inventory.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "log storage",
+          "broadcast",
+          "files",
+          "services",
+          "log inventory"
+        ],
+        "source": {
+          "section": "V16.2 General Logging",
+          "quote": "Verify that the application only stores or broadcasts logs to the files and services that are documented in the log inventory."
+        }
+      },
+      {
+        "id": "R062",
+        "title": "Ensure logs are readable and correlatable by log processors",
+        "when": "Processing and correlating logs",
+        "then": "Verify that logs can be read and correlated by the log processor in use, preferably using a common logging format.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "log processor",
+          "correlation",
+          "common logging format",
+          "readable"
+        ],
+        "source": {
+          "section": "V16.2 General Logging",
+          "quote": "Verify that logs can be read and correlated by the log processor that is in use, preferably by using a common logging format."
+        }
+      },
+      {
+        "id": "R063",
+        "title": "Enforce protection levels when logging sensitive data",
+        "when": "Logging sensitive data",
+        "then": "Verify that when logging sensitive data, the application enforces logging based on the data's protection level (e.g., hashing or masking).",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "sensitive data",
+          "logging",
+          "protection level",
+          "credentials",
+          "payment details",
+          "hashing",
+          "masking"
+        ],
+        "source": {
+          "section": "V16.2 General Logging",
+          "quote": "Verify that when logging sensitive data, the application enforces logging based on the data's protection level. For example, it may not be allowed to log certain data, such as credentials or payment details. Other data, such as session tokens, may only be logged by being hashed or masked, either in full or partially."
+        }
+      },
+      {
+        "id": "R064",
+        "title": "Log all authentication operations",
+        "when": "Performing authentication operations",
+        "then": "Verify that all authentication operations are logged, including successful and unsuccessful attempts, with additional metadata.",
+        "exceptions": [],
+        "severity": "critical",
+        "keywords": [
+          "authentication operations",
+          "successful attempts",
+          "unsuccessful attempts",
+          "metadata",
+          "factors",
+          "authentication",
+          "logging"
+        ],
+        "source": {
+          "section": "V16.3 Security Events",
+          "quote": "Verify that all authentication operations are logged, including successful and unsuccessful attempts. Additional metadata, such as the type of authentication or factors used, should also be collected."
+        }
+      },
+      {
+        "id": "R065",
+        "title": "Log failed authorization attempts and sensitive data access",
+        "when": "Performing authorization operations or accessing sensitive data",
+        "then": "Verify that failed authorization attempts are logged, and for L3, log all authorization decisions including sensitive data access without logging the sensitive data itself.",
+        "exceptions": [],
+        "severity": "critical",
+        "keywords": [
+          "authorization attempts",
+          "failed authorization",
+          "authorization decisions",
+          "sensitive data access",
+          "l3",
+          "authorization",
+          "failed attempts",
+          "sensitive data",
+          "logging decisions"
+        ],
+        "source": {
+          "section": "V16.3 Security Events",
+          "quote": "Verify that failed authorization attempts are logged. For L3, this must include logging all authorization decisions, including logging when sensitive data is accessed (without logging the sensitive data itself)."
+        }
+      },
+      {
+        "id": "R066",
+        "title": "Log security events and security control bypass attempts",
+        "when": "Encountering security events or bypass attempts",
+        "then": "Verify that the application logs the security events defined in documentation and logs attempts to bypass security controls such as input validation, business logic, and anti-automation.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "security events",
+          "bypass attempts",
+          "input validation",
+          "business logic",
+          "anti-automation",
+          "logging"
+        ],
+        "source": {
+          "section": "V16.3 Security Events",
+          "quote": "Verify that the application logs the security events that are defined in the documentation and also logs attempts to bypass the security controls, such as input validation, business logic, and anti-automation."
+        }
+      },
+      {
+        "id": "R067",
+        "title": "Log unexpected errors and security control failures",
+        "when": "Encountering unexpected errors or security control failures",
+        "then": "Verify that the application logs unexpected errors and security control failures such as backend TLS failures.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "unexpected errors",
+          "security control failures",
+          "backend tls failures",
+          "logging",
+          "tls failures"
+        ],
+        "source": {
+          "section": "V16.3 Security Events",
+          "quote": "Verify that the application logs unexpected errors and security control failures such as backend TLS failures."
+        }
+      },
+      {
+        "id": "R068",
+        "title": "Encode Log Data to Prevent Log Injection",
+        "when": "Logging component processes data",
+        "then": "Verify that all logging components appropriately encode data to prevent log injection.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "log injection",
+          "encoding",
+          "logging components",
+          "log protection"
+        ],
+        "source": {
+          "section": "V16.4 Log Protection",
+          "quote": "Verify that all logging components appropriately encode data to prevent log injection."
+        }
+      },
+      {
+        "id": "R069",
+        "title": "Protect Logs from Unauthorized Access and Modification",
+        "when": "Storing logs",
+        "then": "Verify that logs are protected from unauthorized access and cannot be modified.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "log integrity",
+          "unauthorized access",
+          "tampering",
+          "log protection"
+        ],
+        "source": {
+          "section": "V16.4 Log Protection",
+          "quote": "Verify that logs are protected from unauthorized access and cannot be modified."
+        }
+      },
+      {
+        "id": "R070",
+        "title": "Securely Transmit Logs to Separate System",
+        "when": "Transmitting logs for analysis and detection",
+        "then": "Verify that logs are securely transmitted to a logically separate system for analysis, detection, alerting, and escalation. The aim is to ensure that if the application is breached, the logs are not compromised.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "secure transmission",
+          "separate system",
+          "analysis",
+          "detection",
+          "alerting",
+          "log protection"
+        ],
+        "source": {
+          "section": "V16.4 Log Protection",
+          "quote": "Verify that logs are securely transmitted to a logically separate system for analysis, detection, alerting, and escalation. The aim is to ensure that if the application is breached, the logs are not compromised."
+        }
+      },
+      {
+        "id": "R071",
+        "title": "Return Generic Messages for Errors",
+        "when": "An unexpected or security-sensitive error occurs",
+        "then": "Verify that a generic message is returned to the consumer when an unexpected or security-sensitive error occurs, ensuring no exposure of sensitive internal system data such as stack traces, queries, secret keys, and tokens.",
+        "exceptions": [],
+        "severity": "critical",
+        "keywords": [
+          "error handling",
+          "generic message",
+          "sensitive data exposure",
+          "stack traces",
+          "secret keys"
+        ],
+        "source": {
+          "section": "V16.5 Error Handling",
+          "quote": "Verify that a generic message is returned to the consumer when an unexpected or security-sensitive error occurs, ensuring no exposure of sensitive internal system data such as stack traces, queries, secret keys, and tokens."
+        }
+      },
+      {
+        "id": "R072",
+        "title": "Secure Operation on External Resource Failure",
+        "when": "External resource access fails",
+        "then": "Verify that the application continues to operate securely when external resource access fails, for example, by using patterns such as circuit breakers or graceful degradation.",
+        "exceptions": [],
+        "severity": "major",
+        "keywords": [
+          "external resource",
+          "circuit breaker",
+          "graceful degradation",
+          "resilience",
+          "error handling"
+        ],
+        "source": {
+          "section": "V16.5 Error Handling",
+          "quote": "Verify that the application continues to operate securely when external resource access fails, for example, by using patterns such as circuit breakers or graceful degradation."
+        }
+      },
+      {
+        "id": "R073",
+        "title": "Graceful and Secure Failure on Exceptions",
+        "when": "An exception occurs during processing",
+        "then": "Verify that the application fails gracefully and securely, including when an exception occurs, preventing fail-open conditions such as processing a transaction despite errors resulting from validation logic.",
+        "exceptions": [],
+        "severity": "critical",
+        "keywords": [
+          "fail-open",
+          "graceful failure",
+          "validation logic",
+          "exceptions",
+          "error handling"
+        ],
+        "source": {
+          "section": "V16.5 Error Handling",
+          "quote": "Verify that the application fails gracefully and securely, including when an exception occurs, preventing fail-open conditions such as processing a transaction despite errors resulting from validation logic."
+        }
+      },
+      {
+        "id": "R074",
+        "title": "Last Resort Error Handler for Unhandled Exceptions",
+        "when": "Unhandled exceptions occur in the application",
+        "then": "Verify that a \"last resort\" error handler is defined which will catch all unhandled exceptions. This is both to avoid losing error details that must go to log files and to ensure that an error does not take down the entire application process, leading to a loss of availability.",
+        "exceptions": [
+          "Certain languages, (including Swift, Go, and through common design practice, many functional languages,) do not support exceptions or last-resort event handlers."
+        ],
+        "severity": "major",
+        "keywords": [
+          "last resort handler",
+          "unhandled exceptions",
+          "availability",
+          "error logging"
+        ],
+        "source": {
+          "section": "V16.5 Error Handling",
+          "quote": "Verify that a \"last resort\" error handler is defined which will catch all unhandled exceptions. This is both to avoid losing error details that must go to log files and to ensure that an error does not take down the entire application process, leading to a loss of availability."
+        }
+      }
+    ],
+    "changelog": [
+      "Version 1: made from 'owasp-asvs-5.0-architecture.md'. 74 rules kept, 8 left out."
+    ]
+  }
+}

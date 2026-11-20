@@ -3,9 +3,11 @@
  * and the steps with where this device is in them. One clear next action.
  */
 import { useSyncExternalStore } from 'react';
+import { STARTER_STANDARD } from '@/cartridge/starter';
 import { receipt } from '@/telemetry/receipt';
 import { cartridgeLabel, useChosenCartridgeId } from '@/ui/activeCartridge';
 import { ReadyBadge } from '@/ui/components/ExamReportCard';
+import { StarterButton } from '@/ui/components/StarterButton';
 import { useCartridges, useCurrentCartridge, useSourceCount } from '@/ui/hooks/useCartridges';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/ui/primitives/button';
@@ -106,6 +108,72 @@ export function Welcome() {
           Public standards go to the cloud once. Your diagram never does.
         </p>
       </div>
+
+      {!loading && records.length === 0 && (
+        <section
+          aria-labelledby="starter-title"
+          className="flex flex-col gap-3 rounded-xl border border-primary/40 bg-primary/5 p-5"
+        >
+          <div className="flex flex-col gap-1">
+            <h2 id="starter-title" className="text-base font-semibold">
+              Try it now in one click
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Load our pre-compiled <strong>{STARTER_STANDARD.shortName}</strong> cartridge (
+              {STARTER_STANDARD.ruleCount} rules across {STARTER_STANDARD.chapters};{' '}
+              {STARTER_STANDARD.licence}). Every rule quote verifies live on this device against the
+              bundled standard — no cloud call needed.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-start gap-2">
+            <StarterButton />
+            <a
+              href="/load"
+              onClick={linkHandler('/load')}
+              className={buttonVariants({ variant: 'outline' })}
+            >
+              Or load your own rulebook
+            </a>
+          </div>
+        </section>
+      )}
+
+      {!loading && cartridge && (
+        <section
+          aria-label="Quick actions"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4"
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-medium">{cartridgeLabel(cartridge).full}</p>
+            <p className="text-xs text-muted-foreground">
+              Ready on this device. Jump straight into auditing a diagram or asking questions.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={href('/blueprint', { id: cartridge.id })}
+              onClick={linkHandler('/blueprint', { id: cartridge.id })}
+              className={buttonVariants({ size: 'sm' })}
+            >
+              Open Blueprint
+            </a>
+            <a
+              href={href('/ask', { id: cartridge.id })}
+              onClick={linkHandler('/ask', { id: cartridge.id })}
+              className={buttonVariants({ size: 'sm', variant: 'outline' })}
+            >
+              Ask
+            </a>
+            <a
+              href={href('/cartridge', { id: cartridge.id })}
+              onClick={linkHandler('/cartridge', { id: cartridge.id })}
+              className={buttonVariants({ size: 'sm', variant: 'outline' })}
+            >
+              Browse {cartridge.rules.length} cards
+            </a>
+          </div>
+        </section>
+      )}
 
       <ol className="flex flex-col gap-2" aria-label="Steps">
         {steps.map((s, i) => {

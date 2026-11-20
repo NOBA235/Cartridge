@@ -12,6 +12,7 @@ import { receipt } from '@/telemetry/receipt';
 import { formatBytes, summariseEgress } from '@/telemetry/summary';
 import { cartridgeLabel, useChosenCartridgeId } from '@/ui/activeCartridge';
 import { ExamReportCard } from '@/ui/components/ExamReportCard';
+import { StarterButton } from '@/ui/components/StarterButton';
 import { egressPanel } from '@/ui/egressPanelState';
 import { useCartridges, useLoadedCartridge } from '@/ui/hooks/useCartridges';
 import { useEgressLog } from '@/ui/hooks/useStores';
@@ -240,16 +241,20 @@ export function ReportCard() {
             Cartridges are not available: {error}
           </p>
         )}
-        <p className="text-sm">
-          There is no cartridge on this device yet, so there is nothing to report.
+        <p className="text-sm text-muted-foreground">
+          There is no cartridge on this device yet. Load the bundled OWASP ASVS 5.0 starter
+          standard, or upload your own public rulebook.
         </p>
-        <a
-          href="/load"
-          onClick={linkHandler('/load')}
-          className={buttonVariants({ className: 'self-start' })}
-        >
-          Load a rulebook
-        </a>
+        <div className="flex flex-wrap items-start gap-2">
+          <StarterButton />
+          <a
+            href="/load"
+            onClick={linkHandler('/load')}
+            className={buttonVariants({ variant: 'outline' })}
+          >
+            Load your own rulebook
+          </a>
+        </div>
         <Receipt />
       </section>
     );

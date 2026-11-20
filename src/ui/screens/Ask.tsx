@@ -23,6 +23,7 @@ import {
   type LoadedCartridge,
 } from '@/cartridge/askSession';
 import { config } from '@/config';
+import { STARTER_STANDARD } from '@/cartridge/starter';
 import { asPrivate, type Public } from '@/privacy';
 import { connectivity } from '@/queue/connectivity';
 import type { QueueView } from '@/queue/offlineQueue';
@@ -33,6 +34,7 @@ import { CloudSetting } from '@/ui/components/CloudSetting';
 import { DeclassifyDialog, type DeclassifyRequest } from '@/ui/components/DeclassifyDialog';
 import { DevicePanel, useDeviceState } from '@/ui/components/DevicePanel';
 import { NoSignalSwitch, useConnectivity } from '@/ui/components/NoSignalSwitch';
+import { StarterButton } from '@/ui/components/StarterButton';
 import { useChosenCartridgeId } from '@/ui/activeCartridge';
 import { useCartridges, useLoadedCartridge } from '@/ui/hooks/useCartridges';
 import { useEgressLog, useSettings } from '@/ui/hooks/useStores';
@@ -224,9 +226,27 @@ function AskWith({ loaded }: { loaded: LoadedCartridge }) {
         <p className="text-xs text-muted-foreground">
           {device.state === 'ready'
             ? 'Answered on this device when the cartridge covers it.'
-            : 'Gemini Nano is not ready yet; see below.'}{' '}
-          Your question stays on this device unless you approve sending it.
+            : 'Gemini Nano is not ready on this device yet — questions use consent-gated Cloud mode (you approve exact text before anything leaves).'}
         </p>
+        {loaded.cartridge.name === STARTER_STANDARD.name && (
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">Try asking:</span>
+            {STARTER_STANDARD.sampleQuestions.map((sample) => (
+              <button
+                key={sample}
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setQuestion(sample);
+                  inputRef.current?.focus();
+                }}
+                className="rounded-full border px-2.5 py-0.5 text-xs text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              >
+                {sample}
+              </button>
+            ))}
+          </div>
+        )}
       </form>
 
       <div aria-live="polite" className="flex flex-col gap-3">
@@ -291,16 +311,20 @@ export function Ask() {
             Cartridges are not available: {error}
           </p>
         )}
-        <p className="text-sm">
-          There is no cartridge on this device yet. Load a rulebook and make its cartridge first.
+        <p className="text-sm text-muted-foreground">
+          There is no cartridge on this device yet. Load the bundled OWASP ASVS 5.0 starter
+          standard, or upload your own public rulebook.
         </p>
-        <a
-          href="/load"
-          onClick={linkHandler('/load')}
-          className={buttonVariants({ className: 'self-start' })}
-        >
-          Load a rulebook
-        </a>
+        <div className="flex flex-wrap items-start gap-2">
+          <StarterButton />
+          <a
+            href="/load"
+            onClick={linkHandler('/load')}
+            className={buttonVariants({ variant: 'outline' })}
+          >
+            Load your own rulebook
+          </a>
+        </div>
       </section>
     );
   }

@@ -25,6 +25,7 @@ import {
   type EdgeLook,
 } from './decorate';
 import { evaluateEdge, type EdgeVerdict } from './evaluate';
+import { diagramNodeNames, leakedDiagramTerms } from './generalise';
 import { CARTRIDGE_TAG, extractGraph, type SceneElement } from './scene';
 import { buildTemplate, TEMPLATES } from './templates';
 
@@ -467,5 +468,25 @@ describe('templates', () => {
       'Browser client --> Authentication service (HTTP plaintext login)',
     );
     expect(g.edges.every((e) => isPrivate(e.text))).toBe(true);
+  });
+});
+
+describe('generalised cloud question privacy lint', () => {
+  const edge = 'Public webhook --> Core ledger database (production) (direct write, no auth)';
+
+  it('extracts box names without the arrow label', () => {
+    expect(diagramNodeNames(edge)).toEqual(['Public webhook', 'Core ledger database (production)']);
+  });
+
+  it('warns when the user types a real diagram box name, and stays silent for generic wording', () => {
+    expect(leakedDiagramTerms('Can a public webhook write to an internal database?', edge)).toEqual(
+      ['Public webhook'],
+    );
+    expect(
+      leakedDiagramTerms(
+        'Can an external callback write to an internal ledger without auth?',
+        edge,
+      ),
+    ).toEqual([]);
   });
 });

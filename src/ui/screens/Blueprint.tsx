@@ -24,7 +24,8 @@ import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { ExcalidrawElementSkeleton } from '@excalidraw/excalidraw/data/transform';
 import type { AppState, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import '@excalidraw/excalidraw/index.css';
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
+import { cloudJson } from '@/ai/cloud';
 import { deviceSessions } from '@/ai/deviceSessions';
 import { canvasMode } from '@/canvas/bench';
 import { EdgeChecker } from '@/canvas/checker';
@@ -41,22 +42,31 @@ import {
 import { edgeModelFor } from '@/canvas/edgeSessions';
 import { matchedException } from '@/canvas/edges';
 import { evaluateEdge, type EdgeVerdict } from '@/canvas/evaluate';
+import { leakedDiagramTerms } from '@/canvas/generalise';
 import { extractGraph, isOurs, type DiagramGraph, type SceneElement } from '@/canvas/scene';
 import { buildTemplate, TEMPLATES } from '@/canvas/templates';
-import type { LoadedCartridge } from '@/cartridge/askSession';
+import { checkQuote } from '@/cartridge/answer';
+import { askCloud, planCloudQuestion, type CloudAnswer, type CloudPlan } from '@/cartridge/ask';
+import { rememberProposal, type LoadedCartridge } from '@/cartridge/askSession';
+import { config } from '@/config';
 import { cn } from '@/lib/utils';
-import { reveal } from '@/privacy';
+import { asPrivate, reveal, type Public } from '@/privacy';
 import { egressLog } from '@/telemetry/egress';
+import { receipt } from '@/telemetry/receipt';
 import { formatBytes } from '@/telemetry/summary';
 import { useChosenCartridgeId } from '@/ui/activeCartridge';
+import { AnswerCard } from '@/ui/components/AnswerCard';
+import { DeclassifyDialog, type DeclassifyRequest } from '@/ui/components/DeclassifyDialog';
 import { useDeviceState } from '@/ui/components/DevicePanel';
+import { useConnectivity } from '@/ui/components/NoSignalSwitch';
 import { SeverityChip } from '@/ui/components/SeverityChip';
 import { SourceContext } from '@/ui/components/SourceContext';
+import { StarterButton } from '@/ui/components/StarterButton';
 import { useCartridges, useLoadedCartridge } from '@/ui/hooks/useCartridges';
 import { useEgressLog } from '@/ui/hooks/useStores';
 import { Button, buttonVariants } from '@/ui/primitives/button';
 import { href, linkHandler, navigate, useLocation } from '@/ui/router';
-import { inputClass } from '@/ui/styles';
+import { inputClass, textareaClass } from '@/ui/styles';
 
 const SAVE_KEY = 'cartridge.blueprint.v1';
 
@@ -117,6 +127,186 @@ const TONE_CLASS: Record<EdgeLook['tone'], string> = {
   none: 'border-border bg-muted text-muted-foreground',
 };
 
+function GeneralisedCloudAsk({ ctx, edgeText }: { ctx: LoadedCartridge; edgeText: string }) {
+  const inputId = useId();
+  const online = useConnectivity();
+  const canCallCloud = online.browserOnline && !online.simulatedOffline;
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [answer, setAnswer] = useState<CloudAnswer | null>(null);
+  const [pending, setPending] = useState<{
+    request: DeclassifyRequest;
+    plan: CloudPlan;
+  } | null>(null);
+
+  const leaked = useMemo(() => leakedDiagramTerms(draft, edgeText), [draft, edgeText]);
+  const rulesById = useMemo(
+    () => new Map(ctx.cartridge.rules.map((r) => [r.id, r])),
+    [ctx.cartridge.rules],
+  );
+
+  const review = (e: FormEvent) => {
+    e.preventDefault();
+    const text = draft.trim();
+    if (!text || busy) return;
+    setError(null);
+    const plan = planCloudQuestion(text, ctx);
+    setPending({
+      plan,
+      request: {
+        value: asPrivate(text, 'user-question'),
+        purpose: 'Ask the cloud about a generalised architecture pattern',
+        scope: 'canvas',
+        destination: `the cloud model (${config.cloudModels.ANSWER}) through Firebase AI Logic`,
+        fullRequest: plan.preview,
+        context:
+          'You wrote this generalised wording yourself. Nothing from your diagram is added automatically.',
+        approveLabel: 'Approve and ask cloud',
+      },
+    });
+  };
+
+  const sendApproved = async (approved: Public<string>) => {
+    const plan = pending?.plan;
+    setPending(null);
+    if (!plan) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const raw = await askCloud(approved, plan, ctx, cloudJson, 'USER_REQUESTED');
+      const saved = await rememberProposal(raw, ctx.cartridge.id, ctx.cartridge.version);
+      receipt.count(saved);
+      setAnswer(saved);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-2 border-t pt-3">
+      {!open ? (
+        <Button size="sm" variant="outline" className="self-start" onClick={() => setOpen(true)}>
+          Ask the cloud (generalised)…
+        </Button>
+      ) : (
+        <form onSubmit={review} className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <label htmlFor={inputId} className="text-xs font-medium">
+              Ask the cloud about a generalised pattern
+            </label>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-xs"
+              onClick={() => setOpen(false)}
+            >
+              Hide
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Your diagram labels are never pre-filled. Rewrite the pattern without private service
+            names; you will approve exact bytes before anything leaves.
+          </p>
+          <textarea
+            id={inputId}
+            className={`${textareaClass} min-h-20 text-xs`}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="For example: Can an external webhook write directly to an internal database without authentication?"
+            disabled={busy}
+          />
+          {leaked.length > 0 && (
+            <p
+              role="status"
+              className="rounded-md border border-warning/50 bg-warning/10 p-2 text-xs text-warning"
+            >
+              Heads up: this includes diagram name{leaked.length === 1 ? '' : 's'}{' '}
+              {leaked.map((t) => `‘${t}’`).join(', ')}. Replace private names before sending.
+            </p>
+          )}
+          <Button
+            type="submit"
+            size="sm"
+            className="self-start"
+            disabled={busy || !draft.trim() || !canCallCloud}
+          >
+            {busy ? 'Asking the cloud…' : 'Review & ask cloud'}
+          </Button>
+          {!canCallCloud && (
+            <p className="text-xs text-muted-foreground">
+              No signal. Asking the cloud needs a connection.
+            </p>
+          )}
+          {error && (
+            <p role="alert" className="text-xs text-destructive">
+              {error}
+            </p>
+          )}
+        </form>
+      )}
+      {answer && (
+        <AnswerCard
+          answer={answer}
+          rule={answer.ruleId ? rulesById.get(answer.ruleId) : undefined}
+          source={ctx.source}
+          cartridgeId={ctx.cartridge.id}
+        />
+      )}
+      <DeclassifyDialog
+        request={pending?.request ?? null}
+        onApproved={(v) => void sendApproved(v)}
+        onCancel={() => setPending(null)}
+      />
+    </div>
+  );
+}
+
+function LocalCandidatePreview({ ctx, edgeText }: { ctx: LoadedCartridge; edgeText: string }) {
+  const hits = useMemo(
+    () => ctx.index.search(edgeText, { topK: 3, minScore: 0 }).hits,
+    [ctx, edgeText],
+  );
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-xs text-muted-foreground">
+        Gemini Nano is not active on this browser, so automated red/green verdicts are off. Showing
+        the closest rules found locally on this device (0 bytes sent):
+      </p>
+      {hits.length === 0 ? (
+        <p className="text-xs text-muted-foreground">
+          No rule in this cartridge shares keywords with this connection.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {hits.map(({ rule }) => {
+            const q = checkQuote(rule.source.quote, ctx.prepared);
+            return (
+              <li key={rule.id} className="flex flex-col gap-1.5 rounded-lg border p-2.5 text-xs">
+                <p className="flex flex-wrap items-center gap-1.5">
+                  <span className="rounded bg-secondary px-1.5 py-0.5 font-mono">{rule.id}</span>
+                  <span className="font-medium">{rule.title}</span>
+                  <SeverityChip severity={rule.severity} />
+                </p>
+                <p className="text-muted-foreground">{rule.then}</p>
+                {q.ok && q.start !== undefined && q.end !== undefined && ctx.source && (
+                  <p className="font-medium text-success">
+                    Verified against the source{q.page !== undefined && `, page ${q.page}`}
+                  </p>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function Inspector({
   ctx,
   mode,
@@ -148,7 +338,13 @@ function Inspector({
           </h2>
           <p className="break-words">{reveal(edge.text)}</p>
           {!v ? (
-            <p className="text-muted-foreground">{checking ? 'Checking…' : 'Not checked.'}</p>
+            checking ? (
+              <p className="text-muted-foreground">Checking on this device…</p>
+            ) : ctx ? (
+              <LocalCandidatePreview ctx={ctx} edgeText={reveal(edge.text)} />
+            ) : (
+              <p className="text-muted-foreground">Load a cartridge to check connections.</p>
+            )
           ) : (
             <>
               <EdgeStatusChip look={lookForVerdict(v, mode)} />
@@ -212,6 +408,7 @@ function Inspector({
               )}
             </>
           )}
+          {ctx && <GeneralisedCloudAsk key={edge.arrowId} ctx={ctx} edgeText={reveal(edge.text)} />}
           <Button size="sm" variant="ghost" className="self-start" onClick={() => onSelect('')}>
             Back to all connections
           </Button>
@@ -441,10 +638,12 @@ function Canvas({ ctx }: { ctx: LoadedCartridge | null }) {
   };
 
   const banner = !ctx
-    ? 'Load a rulebook and make its cartridge to check connections. You can draw already.'
-    : device.state !== 'ready'
-      ? 'Gemini Nano is not ready on this device, so connections are not checked yet.'
-      : null;
+    ? 'Load the OWASP ASVS 5.0 starter or your own rulebook to audit connections. You can draw already.'
+    : device.state === 'unavailable'
+      ? 'Gemini Nano is unavailable in this browser (needs desktop Chrome 139+). Click any connection to see local matching rules or ask the cloud about a generalised pattern.'
+      : device.state !== 'ready'
+        ? 'Prepare Gemini Nano on this device for live on-device connection checks (0 bytes sent). Click any connection meanwhile to preview local matching rules.'
+        : null;
 
   return (
     <>
@@ -479,19 +678,25 @@ function Canvas({ ctx }: { ctx: LoadedCartridge | null }) {
           className="flex flex-wrap items-center gap-3 border-b bg-muted/40 px-6 py-2 text-sm"
         >
           <span>{banner}</span>
-          {ctx && device.state !== 'ready' && device.state !== 'preparing' && (
-            <Button size="sm" variant="outline" onClick={() => void deviceSessions.prepare()}>
-              Prepare this device
-            </Button>
-          )}
+          {ctx &&
+            device.state !== 'ready' &&
+            device.state !== 'preparing' &&
+            (device.state !== 'unavailable' || device.canRetry) && (
+              <Button size="sm" variant="outline" onClick={() => void deviceSessions.prepare()}>
+                {device.state === 'unavailable' ? 'Try again' : 'Prepare this device'}
+              </Button>
+            )}
           {!ctx && (
-            <a
-              href="/load"
-              onClick={linkHandler('/load')}
-              className={buttonVariants({ size: 'sm', variant: 'outline' })}
-            >
-              Load a rulebook
-            </a>
+            <>
+              <StarterButton size="sm" />
+              <a
+                href="/load"
+                onClick={linkHandler('/load')}
+                className={buttonVariants({ size: 'sm', variant: 'outline' })}
+              >
+                Load a rulebook
+              </a>
+            </>
           )}
         </div>
       )}
@@ -588,7 +793,9 @@ export default function Blueprint() {
             Your diagram: never leaves this device
           </span>
           <span className="text-xs text-muted-foreground" aria-live="polite">
-            Diagram bytes sent: {diagramBytes === 0 ? '0' : formatBytes(diagramBytes)}
+            {diagramBytes === 0
+              ? 'Diagram bytes sent: 0'
+              : `Canvas bytes sent (approved): ${formatBytes(diagramBytes)}`}
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
