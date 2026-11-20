@@ -39,7 +39,7 @@ import {
   type ElementTools,
 } from '@/canvas/decorate';
 import { edgeModelFor } from '@/canvas/edgeSessions';
-import { sameText } from '@/canvas/edges';
+import { matchedException } from '@/canvas/edges';
 import { evaluateEdge, type EdgeVerdict } from '@/canvas/evaluate';
 import { extractGraph, isOurs, type DiagramGraph, type SceneElement } from '@/canvas/scene';
 import { buildTemplate, TEMPLATES } from '@/canvas/templates';
@@ -167,16 +167,12 @@ function Inspector({
                     </p>
                     <p>{v.rule.then}</p>
                   </div>
-                  {v.status === 'COMPLIANT_VIA_EXCEPTION' && (
+                  {v.status === 'COMPLIANT_VIA_EXCEPTION' && v.facts && (
                     <div>
                       <p className="text-xs font-medium text-muted-foreground uppercase">
                         Exception that applies
                       </p>
-                      <p>
-                        {v.rule.exceptions.find((x) =>
-                          sameText(x, v.facts?.matchedExceptionText ?? null),
-                        )}
-                      </p>
+                      <p>{matchedException(v.facts, v.rule)}</p>
                     </div>
                   )}
                   {v.quoteCheck?.ok &&
@@ -307,17 +303,7 @@ function Canvas({ ctx }: { ctx: LoadedCartridge | null }) {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const initial = useMemo(() => loadSaved(), []);
 
-  const device = useDeviceState(
-    ctx?.cartridge ?? {
-      id: '',
-      version: 0,
-      name: '',
-      rules: [],
-      changelog: [],
-      createdAt: '',
-      sourceHash: '',
-    },
-  );
+  const device = useDeviceState();
   const ready = ctx !== null && device.state === 'ready';
   const mode: CanvasMode = ctx ? canvasMode(ctx.cartridge) : 'advisory';
   const versionKey = ctx ? `${ctx.cartridge.id}@${ctx.cartridge.version}` : '';
@@ -370,7 +356,7 @@ function Canvas({ ctx }: { ctx: LoadedCartridge | null }) {
     let live = true;
     const checker = new EdgeChecker({
       evaluate: async (text) => {
-        const model = await edgeModelFor(ctx.cartridge);
+        const model = await edgeModelFor();
         if (!model) {
           return {
             status: 'UNCERTAIN',
@@ -494,11 +480,7 @@ function Canvas({ ctx }: { ctx: LoadedCartridge | null }) {
         >
           <span>{banner}</span>
           {ctx && device.state !== 'ready' && device.state !== 'preparing' && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => void deviceSessions.prepare(ctx.cartridge)}
-            >
+            <Button size="sm" variant="outline" onClick={() => void deviceSessions.prepare()}>
               Prepare this device
             </Button>
           )}

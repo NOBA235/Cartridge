@@ -1,20 +1,18 @@
-/** Gemini Nano readiness for the current cartridge, with 'Prepare this device'. */
+/** Gemini Nano readiness on this device, with 'Prepare this device'. */
 import { useEffect, useSyncExternalStore } from 'react';
-import { deviceSessions, sessionKey, type DeviceState } from '@/ai/deviceSessions';
-import type { Cartridge } from '@/cartridge/types';
+import { deviceSessions, type DeviceState } from '@/ai/deviceSessions';
 import { Button } from '@/ui/primitives/button';
 
-export function useDeviceState(c: Cartridge): DeviceState {
-  const all = useSyncExternalStore(deviceSessions.subscribe, deviceSessions.get);
-  return all[sessionKey(c)] ?? { state: 'idle' };
+export function useDeviceState(): DeviceState {
+  return useSyncExternalStore(deviceSessions.subscribe, deviceSessions.get);
 }
 
-export function DevicePanel({ cartridge }: { cartridge: Cartridge }) {
-  const s = useDeviceState(cartridge);
+export function DevicePanel() {
+  const s = useDeviceState();
 
   useEffect(() => {
-    deviceSessions.autoPrepare(cartridge);
-  }, [cartridge]);
+    deviceSessions.autoPrepare();
+  }, []);
 
   return (
     <div className="flex flex-col gap-2 rounded-xl border p-4" aria-live="polite">
@@ -51,7 +49,7 @@ export function DevicePanel({ cartridge }: { cartridge: Cartridge }) {
           variant="outline"
           size="sm"
           className="self-start"
-          onClick={() => void deviceSessions.prepare(cartridge)}
+          onClick={() => void deviceSessions.prepare()}
         >
           {s.state === 'idle' ? 'Prepare this device' : 'Try again'}
         </Button>

@@ -43,8 +43,8 @@ export const checkJobs = {
       if (!ctx.source)
         throw new Error('The rulebook is not on this device, so answers cannot be checked.');
 
-      const state = await deviceSessions.prepare(ctx.cartridge);
-      const device = deviceSessions.handle(ctx.cartridge);
+      const state = await deviceSessions.prepare();
+      const device = deviceSessions.handle();
       if (state.state !== 'ready' || !device?.ready) {
         set(proposalId, {
           status: 'needs-device',

@@ -14,12 +14,11 @@ import {
 } from './firebaseDevice';
 import {
   buildDeviceSelectPrompt,
+  CANDIDATE_SLOTS,
   DEVICE_EDGE_SYSTEM,
   formatCandidateLine,
   formatEdgeCandidateLine,
 } from './prompts';
-
-const IDS = ['R001', 'R002', 'R003'];
 
 interface FakeOptions {
   adapter?: boolean;
@@ -31,7 +30,7 @@ interface FakeOptions {
 function fake(opts: FakeOptions = {}) {
   const generateContent = vi.fn(async (_prompt: string) => ({
     response: {
-      text: () => opts.reply ?? '{"ruleId":"R002","quantity":400}',
+      text: () => opts.reply ?? '{"choice":"C2","quantity":400}',
       inferenceSource: opts.inferenceSource ?? 'on_device',
     },
   }));
@@ -57,12 +56,13 @@ const question = asPrivate('How many toilets for 400 people?', 'user-question');
 beforeEach(() => egressLog._reset());
 
 describe('device prompt and schema', () => {
-  it('lists only the candidates, one per line, with Not when when present', () => {
+  it('labels only the candidates as C1..C5, one per line, with Not when when present', () => {
     const prompt = buildDeviceSelectPrompt('q?', SAMPLE_RULES.slice(1, 2));
     expect(prompt).toContain(
-      'R002: Toilets per number of people. When: Deciding how many toilets a site needs. Not when: Asking about handwashing or water quantity.',
+      'C1: Toilets per number of people. When: Deciding how many toilets a site needs. Not when: Asking about handwashing or water quantity.',
     );
     expect(prompt).not.toContain('R001');
+    expect(prompt).not.toContain('R002');
     expect(prompt).not.toContain('R003');
     expect(prompt.startsWith('Question: q?')).toBe(true);
   });
@@ -70,38 +70,39 @@ describe('device prompt and schema', () => {
   it('omits Not when if the rule has none and avoids double full stops', () => {
     const [water] = SAMPLE_RULES;
     if (!water) throw new Error('sample rules missing');
-    const line = formatCandidateLine({ ...water, title: 'Water.' });
-    expect(line).toBe('R001: Water. When: Planning daily drinking water for a group of people.');
+    const line = formatCandidateLine({ ...water, title: 'Water.' }, 'C1');
+    expect(line).toBe('C1: Water. When: Planning daily drinking water for a group of people.');
   });
 
-  it('allows every rule ID plus NONE', () => {
-    const json = buildSelectSchema(IDS);
-    expect(json.properties.ruleId.enum).toEqual(['R001', 'R002', 'R003', 'NONE']);
+  it('uses a fixed schema of C1..C5 plus NONE regardless of cartridge size', () => {
+    const json = buildSelectSchema();
+    expect(json.properties.choice.enum).toEqual([...CANDIDATE_SLOTS, 'NONE']);
     expect(json.properties.quantity.type).toBe('number');
-    expect(json.required).toEqual(['ruleId', 'quantity']);
+    expect(json.required).toEqual(['choice', 'quantity']);
   });
 });
 
 describe('FirebaseDeviceModel', () => {
-  it('passes a plain JSON schema and a system prompt to the factory', async () => {
+  it('passes a fixed plain JSON schema and a system prompt to the factory', async () => {
     const f = fake();
-    await new FirebaseDeviceModel(IDS, f.factory).prepare(() => {});
+    await new FirebaseDeviceModel(f.factory).prepare(() => {});
     const p = f.params();
-    expect(p?.systemPrompt).toMatch(/choose which rule/);
+    expect(p?.systemPrompt).toMatch(/choose which candidate rule/);
     expect(p?.languages).toEqual(['en']);
     expect(Object.getPrototypeOf(p?.responseConstraint)).toBe(Object.prototype);
+    expect(p?.responseConstraint).toEqual(buildSelectSchema());
   });
 
   it('is unavailable when the SDK built no on-device adapter, and never initialises', async () => {
     const f = fake({ adapter: false });
-    const status = await new FirebaseDeviceModel(IDS, f.factory).prepare(() => {});
+    const status = await new FirebaseDeviceModel(f.factory).prepare(() => {});
     expect(status.state).toBe('unavailable');
     expect(f.initializeDeviceModel).not.toHaveBeenCalled();
   });
 
   it('is unavailable when initializeDeviceModel throws', async () => {
     const f = fake({ initError: new Error('Local LanguageModel API not available') });
-    const status = await new FirebaseDeviceModel(IDS, f.factory).prepare(() => {});
+    const status = await new FirebaseDeviceModel(f.factory).prepare(() => {});
     expect(status).toMatchObject({
       state: 'unavailable',
       reason: 'Local LanguageModel API not available',
@@ -113,16 +114,14 @@ describe('FirebaseDeviceModel', () => {
     const initError = Object.assign(new Error('Local LanguageModel API not available'), {
       code: 'api-not-enabled',
     });
-    const status = await new FirebaseDeviceModel(IDS, fake({ initError }).factory).prepare(
-      () => {},
-    );
+    const status = await new FirebaseDeviceModel(fake({ initError }).factory).prepare(() => {});
     expect(status).toMatchObject({ state: 'unavailable', permanent: true });
   });
 
   it('reports progress and ends at 1', async () => {
     const f = fake();
     const progress: number[] = [];
-    const status = await new FirebaseDeviceModel(IDS, f.factory).prepare((p) => progress.push(p));
+    const status = await new FirebaseDeviceModel(f.factory).prepare((p) => progress.push(p));
     expect(status.state).toBe('ready');
     expect(progress).toEqual([0.5, 1]);
   });
@@ -130,23 +129,32 @@ describe('FirebaseDeviceModel', () => {
   it('refuses to answer before prepare()', async () => {
     const f = fake();
     await expect(
-      new FirebaseDeviceModel(IDS, f.factory).selectRule({ question, candidates: SAMPLE_RULES }),
+      new FirebaseDeviceModel(f.factory).selectRule({ question, candidates: SAMPLE_RULES }),
     ).rejects.toMatchObject({ code: 'NOT_PREPARED' });
     expect(f.generateContent).not.toHaveBeenCalled();
   });
 
-  it('returns the validated selection with source ON_DEVICE', async () => {
+  it('maps the chosen slot back to the real rule ID with source ON_DEVICE', async () => {
     const f = fake();
-    const m = new FirebaseDeviceModel(IDS, f.factory);
+    const m = new FirebaseDeviceModel(f.factory);
     await m.prepare(() => {});
     const sel = await m.selectRule({ question, candidates: SAMPLE_RULES });
     expect(sel).toEqual({ ruleId: 'R002', quantity: 400, source: 'ON_DEVICE' });
     expect(egressLog.entries()).toHaveLength(0);
   });
 
+  it('rejects a slot beyond the candidates actually shown', async () => {
+    const f = fake({ reply: '{"choice":"C4","quantity":-1}' });
+    const m = new FirebaseDeviceModel(f.factory);
+    await m.prepare(() => {});
+    await expect(
+      m.selectRule({ question, candidates: SAMPLE_RULES.slice(0, 2) }),
+    ).rejects.toMatchObject({ code: 'BAD_OUTPUT' });
+  });
+
   it('rejects and logs a response that ran in the cloud', async () => {
     const f = fake({ inferenceSource: 'in_cloud' });
-    const m = new FirebaseDeviceModel(IDS, f.factory);
+    const m = new FirebaseDeviceModel(f.factory);
     await m.prepare(() => {});
     await expect(m.selectRule({ question, candidates: SAMPLE_RULES })).rejects.toMatchObject({
       code: 'RAN_IN_CLOUD',
@@ -154,10 +162,10 @@ describe('FirebaseDeviceModel', () => {
     expect(egressLog.entries()[0]?.kind).toBe('unexpected-cloud');
   });
 
-  it('rejects malformed JSON and rule IDs outside the cartridge', async () => {
-    for (const reply of ['nope', '{"ruleId":"R999","quantity":-1}', '{"ruleId":"R001"}']) {
+  it('rejects malformed JSON and unknown slots', async () => {
+    for (const reply of ['nope', '{"choice":"R999","quantity":-1}', '{"choice":"C1"}']) {
       const f = fake({ reply });
-      const m = new FirebaseDeviceModel(IDS, f.factory);
+      const m = new FirebaseDeviceModel(f.factory);
       await m.prepare(() => {});
       await expect(m.selectRule({ question, candidates: SAMPLE_RULES })).rejects.toMatchObject({
         code: 'BAD_OUTPUT',
@@ -166,18 +174,22 @@ describe('FirebaseDeviceModel', () => {
   });
 
   it('accepts NONE', async () => {
-    const f = fake({ reply: '{"ruleId":"NONE","quantity":-1}' });
-    const m = new FirebaseDeviceModel(IDS, f.factory);
+    const f = fake({ reply: '{"choice":"NONE","quantity":-1}' });
+    const m = new FirebaseDeviceModel(f.factory);
     await m.prepare(() => {});
     expect((await m.selectRule({ question, candidates: SAMPLE_RULES })).ruleId).toBe('NONE');
   });
 
-  it('refuses an oversized prompt instead of sending it', async () => {
+  it('refuses an oversized prompt or more than 5 candidates instead of sending it', async () => {
     const f = fake();
-    const m = new FirebaseDeviceModel(IDS, f.factory);
+    const m = new FirebaseDeviceModel(f.factory);
     await m.prepare(() => {});
     const huge = asPrivate('x'.repeat(20_000), 'user-question');
     await expect(m.selectRule({ question: huge, candidates: SAMPLE_RULES })).rejects.toMatchObject({
+      code: 'PROMPT_TOO_LONG',
+    });
+    const six = [...SAMPLE_RULES, ...SAMPLE_RULES];
+    await expect(m.selectRule({ question, candidates: six })).rejects.toMatchObject({
       code: 'PROMPT_TOO_LONG',
     });
     expect(f.generateContent).not.toHaveBeenCalled();
@@ -214,39 +226,52 @@ describe('FirebaseEdgeModel', () => {
   const edge = asPrivate('Latrine pit --> Borehole (12 metres)', 'diagram-label');
   const facts = (o: Record<string, unknown> = {}) =>
     JSON.stringify({
-      matchedRuleId: 'R002',
+      choice: 'C1',
       triggersWhenCondition: true,
       matchesException: false,
-      matchedExceptionText: '',
+      matchedExceptionIndex: -1,
       outOfScope: false,
       ...o,
     });
 
-  it('uses the edge prompt and a schema of every rule ID plus NONE', async () => {
-    const f = fake({ reply: facts() });
-    const m = new FirebaseEdgeModel(IDS, f.factory);
+  it('uses the fixed C1..C5 schema, numbers exceptions, and maps slot back to rule ID', async () => {
+    const f = fake({ reply: facts({ matchesException: true, matchedExceptionIndex: 0 }) });
+    const m = new FirebaseEdgeModel(f.factory);
     await m.prepare(() => {});
     expect(f.params()?.systemPrompt).toBe(DEVICE_EDGE_SYSTEM);
-    expect(f.params()?.responseConstraint).toEqual(buildEdgeSchema(IDS));
-    expect(buildEdgeSchema(IDS).properties.matchedRuleId.enum).toEqual([...IDS, 'NONE']);
+    expect(f.params()?.responseConstraint).toEqual(buildEdgeSchema());
+    expect(buildEdgeSchema().properties.choice.enum).toEqual([...CANDIDATE_SLOTS, 'NONE']);
+    expect(buildEdgeSchema().properties.matchedExceptionIndex.type).toBe('integer');
+
     const shown = SAMPLE_RULES.slice(1, 2);
-    await m.reportFacts({ edge, candidates: shown });
+    const [firstRule] = shown;
+    if (!firstRule) throw new Error('sample rule missing');
+    const out = await m.reportFacts({ edge, candidates: shown });
+    expect(out).toEqual({
+      matchedRuleId: 'R002',
+      triggersWhenCondition: true,
+      matchesException: true,
+      matchedExceptionIndex: 0,
+      outOfScope: false,
+      source: 'ON_DEVICE',
+    });
     const prompt = f.generateContent.mock.calls[0]?.[0] ?? '';
     expect(prompt.startsWith('Connection: Latrine pit --> Borehole (12 metres)')).toBe(true);
-    for (const r of shown) expect(prompt).toContain(formatEdgeCandidateLine(r));
+    expect(prompt).toContain(formatEdgeCandidateLine(firstRule, 'C1'));
+    expect(prompt).toContain('[0]');
     expect(prompt).not.toContain('R001:');
     expect(prompt).toContain('Only report the facts.');
   });
 
-  it('reads NONE and an empty exception as null', async () => {
-    const f = fake({ reply: facts({ matchedRuleId: 'NONE', outOfScope: true }) });
-    const m = new FirebaseEdgeModel(IDS, f.factory);
+  it('reads NONE and negative exception index as null', async () => {
+    const f = fake({ reply: facts({ choice: 'NONE', outOfScope: true }) });
+    const m = new FirebaseEdgeModel(f.factory);
     await m.prepare(() => {});
     expect(await m.reportFacts({ edge, candidates: SAMPLE_RULES.slice(0, 2) })).toEqual({
       matchedRuleId: null,
       triggersWhenCondition: true,
       matchesException: false,
-      matchedExceptionText: null,
+      matchedExceptionIndex: null,
       outOfScope: true,
       source: 'ON_DEVICE',
     });
@@ -254,7 +279,7 @@ describe('FirebaseEdgeModel', () => {
 
   it('rejects a reply that came from the cloud, and logs it', async () => {
     const f = fake({ reply: facts(), inferenceSource: 'in_cloud' });
-    const m = new FirebaseEdgeModel(IDS, f.factory);
+    const m = new FirebaseEdgeModel(f.factory);
     await m.prepare(() => {});
     await expect(m.reportFacts({ edge, candidates: SAMPLE_RULES })).rejects.toMatchObject({
       code: 'RAN_IN_CLOUD',
@@ -262,15 +287,23 @@ describe('FirebaseEdgeModel', () => {
     expect(egressLog.entries().map((e) => e.kind)).toEqual(['unexpected-cloud']);
   });
 
-  it('rejects malformed or invalid output, and refuses before prepare', async () => {
-    const m0 = new FirebaseEdgeModel(IDS, fake().factory);
+  it('rejects malformed, out-of-range slot, or non-integer exception index, and refuses before prepare', async () => {
+    const m0 = new FirebaseEdgeModel(fake().factory);
     await expect(m0.reportFacts({ edge, candidates: SAMPLE_RULES })).rejects.toMatchObject({
       code: 'NOT_PREPARED',
     });
-    for (const reply of ['not json', facts({ matchedRuleId: 'R999' }), '{"outOfScope":true}']) {
-      const m = new FirebaseEdgeModel(IDS, fake({ reply }).factory);
+    for (const reply of [
+      'not json',
+      facts({ choice: 'R999' }),
+      facts({ choice: 'C5' }),
+      facts({ matchedExceptionIndex: 0.5 }),
+      '{"outOfScope":true}',
+    ]) {
+      const m = new FirebaseEdgeModel(fake({ reply }).factory);
       await m.prepare(() => {});
-      await expect(m.reportFacts({ edge, candidates: SAMPLE_RULES })).rejects.toMatchObject({
+      await expect(
+        m.reportFacts({ edge, candidates: SAMPLE_RULES.slice(0, 2) }),
+      ).rejects.toMatchObject({
         code: 'BAD_OUTPUT',
       });
     }

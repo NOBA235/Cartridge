@@ -1,12 +1,13 @@
 /**
  * Connections between two components, and how one is judged against a rule.
  *
- * Gemini Nano reports atomic facts only (EdgeFacts). Plain code decides the
- * status (decide). The text, quote and severity the user sees always come from
- * the rule, never from the model.
+ * Gemini Nano reports atomic facts only (EdgeFacts), including a 0-based
+ * exception index rather than verbatim exception prose. Plain code resolves
+ * the exact exception text from the rule and decides the status (decide).
+ * The text, quote and severity the user sees always come from the rule, never
+ * from the model.
  */
 import { z } from 'zod';
-import { normalize } from '@/cartridge/normalize';
 import type { Rule } from '@/cartridge/types';
 
 export const EDGE_STATUSES = [
@@ -24,7 +25,8 @@ export interface EdgeFacts {
   matchedRuleId: string | null;
   triggersWhenCondition: boolean;
   matchesException: boolean;
-  matchedExceptionText: string | null;
+  /** 0-based index into rule.exceptions, or null when no exception applies. */
+  matchedExceptionIndex: number | null;
   outOfScope: boolean;
 }
 
@@ -40,17 +42,16 @@ export function formatEdge(e: EdgeText): string {
   return `${e.from.trim()} --> ${e.to.trim()}${label ? ` (${label})` : ''}`;
 }
 
-/** Same exception text, ignoring case, spacing, quote style and end punctuation. */
-export function sameText(a: string, b: string | null): boolean {
-  if (b === null) return false;
-  const clean = (s: string) => normalize(s).replace(/[\s.;:,!]+$/, '');
-  const x = clean(a);
-  return x !== '' && x === clean(b);
+/** Exact exception text from the rule when matchedExceptionIndex is valid, else undefined. */
+export function matchedException(f: EdgeFacts, rule?: Rule): string | undefined {
+  if (!rule || f.matchedExceptionIndex === null) return undefined;
+  if (!Number.isInteger(f.matchedExceptionIndex) || f.matchedExceptionIndex < 0) return undefined;
+  return rule.exceptions[f.matchedExceptionIndex];
 }
 
 export function decide(f: EdgeFacts, rule?: Rule): EdgeStatus {
   if (f.outOfScope || f.matchedRuleId === null || !rule) return 'OUT_OF_SCOPE';
-  if (f.matchesException && !rule.exceptions.some((e) => sameText(e, f.matchedExceptionText))) {
+  if (f.matchesException && matchedException(f, rule) === undefined) {
     return 'UNCERTAIN';
   }
   if (f.triggersWhenCondition && f.matchesException) return 'COMPLIANT_VIA_EXCEPTION';

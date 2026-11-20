@@ -45,7 +45,7 @@ export const examJobs = {
     const run = async () => {
       const ctx = await loadAskContext(cartridgeId);
       if (!ctx) throw new Error('This cartridge is no longer on this device.');
-      const device = deviceSessions.handle(ctx.cartridge);
+      const device = deviceSessions.handle();
       if (!device?.ready)
         throw new Error('Gemini Nano is not ready on this device. Prepare this device first.');
       const saved = options.newExam

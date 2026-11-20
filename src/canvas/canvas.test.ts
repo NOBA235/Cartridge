@@ -342,7 +342,7 @@ describe('the canvas never sends diagram text anywhere', () => {
         matchedRuleId: 'R005',
         triggersWhenCondition: true,
         matchesException: false,
-        matchedExceptionText: null,
+        matchedExceptionIndex: null,
         outOfScope: false,
         source: 'mock',
       }),

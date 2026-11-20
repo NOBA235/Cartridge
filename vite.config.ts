@@ -5,9 +5,21 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
-import { buildServiceWorker, precacheList } from './src/offline/serviceWorker.ts';
+import {
+  buildServiceWorker,
+  corePrecacheList,
+  type BundleEntry,
+} from './src/offline/serviceWorker.ts';
 
-/** Writes dist/sw.js with the list of built files (see src/offline/serviceWorker.ts). */
+function listPublicFiles(dir: string, base = dir): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
+    const full = path.join(dir, d.name);
+    if (d.isDirectory()) return listPublicFiles(full, base);
+    return [path.relative(base, full).replace(/\\/g, '/')];
+  });
+}
+
+/** Writes dist/sw.js with the core offline shell (see src/offline/serviceWorker.ts). */
 function offlineShell(): Plugin {
   return {
     name: 'cartridge-offline-shell',
@@ -22,13 +34,13 @@ function offlineShell(): Plugin {
         if (item?.type === 'chunk') hash.update(item.code);
         else if (item) hash.update(item.source);
       }
-      const publicFiles = readdirSync(path.resolve(import.meta.dirname, 'public'));
+      const publicFiles = listPublicFiles(path.resolve(import.meta.dirname, 'public'));
       this.emitFile({
         type: 'asset',
         fileName: 'sw.js',
         source: buildServiceWorker({
           version: hash.digest('hex').slice(0, 16),
-          precache: precacheList([...names, ...publicFiles]),
+          precache: corePrecacheList(bundle as Readonly<Record<string, BundleEntry>>, publicFiles),
         }),
       });
     },

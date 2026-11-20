@@ -70,7 +70,7 @@ const bench = (over: Partial<EdgeBench> = {}): EdgeBench => ({
 });
 
 const truth = (edge: string): Omit<DeviceEdgeFacts, 'source'> => {
-  const none = { matchesException: false, matchedExceptionText: null, outOfScope: false };
+  const none = { matchesException: false, matchedExceptionIndex: null, outOfScope: false };
   if (edge.startsWith('Latrine'))
     return { ...none, matchedRuleId: 'R005', triggersWhenCondition: true };
   if (edge.startsWith('Toilet block'))
@@ -80,7 +80,7 @@ const truth = (edge: string): Omit<DeviceEdgeFacts, 'source'> => {
       matchedRuleId: 'R004',
       triggersWhenCondition: true,
       matchesException: true,
-      matchedExceptionText: 'Short stays of under 3 days may use shared facilities.',
+      matchedExceptionIndex: 0,
       outOfScope: false,
     };
   return { ...none, matchedRuleId: null, triggersWhenCondition: false, outOfScope: true };

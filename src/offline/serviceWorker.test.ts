@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { buildServiceWorker, precacheList } from './serviceWorker';
+import { buildServiceWorker, corePrecacheList, precacheList } from './serviceWorker';
 
 const ORIGIN = 'https://app.test';
 
@@ -22,6 +22,9 @@ function fakeCaches() {
       addAll: async (urls: string[]) => {
         for (const u of urls)
           store.set(pathOf(u), new Response(`cached ${u}`, { headers: { Vary: 'Origin' } }));
+      },
+      put: async (r: string | FakeRequest, res: Response) => {
+        store.set(pathOf(r), res);
       },
       // Like the Cache API, a Vary header stops the match unless ignoreVary is set
       // (the page's requests carry an Origin header the install request did not).
@@ -121,13 +124,73 @@ describe('offline app shell', () => {
     expect(await page?.text()).toBe('cached /index.html');
   });
 
-  it('serves built files from the cache, and fetches files it does not have', async () => {
-    const sw = load(async () => new Response('from network'));
+  it('precaches only the core shell (plus pdf.js), leaving Blueprint and its fonts for runtime caching', () => {
+    const bundle = {
+      'assets/index-1.js': {
+        type: 'chunk' as const,
+        isEntry: true,
+        name: 'index',
+        imports: ['assets/runtime-1.js'],
+        dynamicImports: ['assets/readPdf-1.js', 'assets/Blueprint-1.js'],
+        viteMetadata: { importedCss: new Set(['assets/index-1.css']) },
+      },
+      'assets/runtime-1.js': { type: 'chunk' as const },
+      'assets/readPdf-1.js': {
+        type: 'chunk' as const,
+        dynamicImports: ['assets/pdf-1.js', 'assets/pdf.worker.min-1.js'],
+      },
+      'assets/pdf-1.js': { type: 'chunk' as const },
+      'assets/pdf.worker.min-1.js': {
+        type: 'chunk' as const,
+        viteMetadata: { importedAssets: new Set(['assets/pdf.worker.min-1.mjs']) },
+      },
+      'assets/Blueprint-1.js': {
+        type: 'chunk' as const,
+        name: 'Blueprint',
+        imports: ['assets/cytoscape-1.js'],
+        viteMetadata: { importedCss: new Set(['assets/Blueprint-1.css']) },
+      },
+      'assets/cytoscape-1.js': { type: 'chunk' as const },
+      'fonts/Nunito/Nunito.woff2': { type: 'asset' as const },
+    };
+    expect(corePrecacheList(bundle, ['favicon.svg'])).toEqual([
+      '/',
+      '/assets/index-1.css',
+      '/assets/index-1.js',
+      '/assets/pdf-1.js',
+      '/assets/pdf.worker.min-1.js',
+      '/assets/pdf.worker.min-1.mjs',
+      '/assets/readPdf-1.js',
+      '/assets/runtime-1.js',
+      '/favicon.svg',
+      '/index.html',
+    ]);
+  });
+
+  it('serves built files from the cache, runtime-caches OK misses for offline reuse, and skips error replies', async () => {
+    let online = true;
+    const sw = load(async (r) => {
+      if (!online) throw new TypeError('Failed to fetch');
+      if (r.url.endsWith('/missing')) return new Response('nope', { status: 404 });
+      return new Response(`net ${new URL(r.url).pathname}`);
+    });
     await sw.run('install');
     await sw.request(get('/assets/app.js'));
     expect(sw.fetch).not.toHaveBeenCalled();
-    const other = await sw.request(get('/favicon.ico'));
-    expect(await other?.text()).toBe('from network');
+
+    const lazy = await sw.request(get('/assets/Blueprint-1.js'));
+    expect(await lazy?.text()).toBe('net /assets/Blueprint-1.js');
+    expect(sw.fetch).toHaveBeenCalledTimes(1);
+
+    const missing = await sw.request(get('/missing'));
+    expect(missing?.status).toBe(404);
+
+    // Offline: previously visited lazy asset is now served from cache; 404 was not cached.
+    online = false;
+    const cachedLazy = await sw.request(get('/assets/Blueprint-1.js'));
+    expect(await cachedLazy?.text()).toBe('net /assets/Blueprint-1.js');
+    expect(sw.fetch).toHaveBeenCalledTimes(2);
+    await expect(sw.request(get('/missing'))).rejects.toThrow();
   });
 
   it('never touches other origins or requests that are not GET', async () => {

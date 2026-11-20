@@ -6,20 +6,18 @@
  */
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useEffect, useSyncExternalStore } from 'react';
-import { deviceSessions, sessionKey } from '@/ai/deviceSessions';
-import type { Cartridge } from '@/cartridge/types';
+import { deviceSessions } from '@/ai/deviceSessions';
 import { cartridgeLabel, useChosenCartridgeId } from '@/ui/activeCartridge';
 import { useCartridges, useCurrentCartridge } from '@/ui/hooks/useCartridges';
 import { Button } from '@/ui/primitives/button';
 import { href, linkHandler } from '@/ui/router';
 
-function DeviceChip({ cartridge }: { cartridge: Cartridge }) {
-  const all = useSyncExternalStore(deviceSessions.subscribe, deviceSessions.get);
-  const s = all[sessionKey(cartridge)] ?? { state: 'idle' as const };
+function DeviceChip() {
+  const s = useSyncExternalStore(deviceSessions.subscribe, deviceSessions.get);
 
   useEffect(() => {
-    deviceSessions.autoPrepare(cartridge);
-  }, [cartridge]);
+    deviceSessions.autoPrepare();
+  }, []);
 
   const chip = 'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium';
   if (s.state === 'ready') {
@@ -44,7 +42,7 @@ function DeviceChip({ cartridge }: { cartridge: Cartridge }) {
         variant="outline"
         className="h-8 rounded-full border-warning/50 text-warning"
         title={`Gemini Nano is not ready: ${s.reason}`}
-        onClick={() => void deviceSessions.prepare(cartridge)}
+        onClick={() => void deviceSessions.prepare()}
       >
         Cloud mode: try again
         <span className="sr-only">
@@ -75,7 +73,7 @@ function DeviceChip({ cartridge }: { cartridge: Cartridge }) {
       variant="outline"
       className="h-8 rounded-full"
       title="Downloads Gemini Nano to this device once, so questions can be answered here without a signal"
-      onClick={() => void deviceSessions.prepare(cartridge)}
+      onClick={() => void deviceSessions.prepare()}
     >
       Prepare this device
     </Button>
@@ -133,7 +131,7 @@ export function CartridgeSlot() {
           )}
         </AnimatePresence>
       </div>
-      {shown && <DeviceChip cartridge={shown} />}
+      <DeviceChip />
     </div>
   );
 }

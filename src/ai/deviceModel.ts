@@ -54,7 +54,8 @@ export interface DeviceEdgeFacts {
   matchedRuleId: string | null;
   triggersWhenCondition: boolean;
   matchesException: boolean;
-  matchedExceptionText: string | null;
+  /** 0-based index into the matched rule's exceptions array, or null when no exception applies. */
+  matchedExceptionIndex: number | null;
   outOfScope: boolean;
   source: DeviceSource;
 }

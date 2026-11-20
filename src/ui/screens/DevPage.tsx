@@ -5,8 +5,7 @@
  */
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { cloudJson, CloudError } from '@/ai/cloud';
-import { prepareThisDevice } from '@/ai/device';
-import type { DeviceStatus } from '@/ai/deviceModel';
+import { deviceSessions } from '@/ai/deviceSessions';
 import { getFirebase } from '@/ai/firebase';
 import { DEV_PING_TEMPLATE } from '@/ai/prompts';
 import { config } from '@/config';
@@ -14,6 +13,7 @@ import { DEV_PING_TASK, DevPingReply } from '@/dev/devTasks';
 import { asPrivate, fillTemplate, type Public } from '@/privacy';
 import { CloudSetting } from '@/ui/components/CloudSetting';
 import { DeclassifyDialog, type DeclassifyRequest } from '@/ui/components/DeclassifyDialog';
+import { useDeviceState } from '@/ui/components/DevicePanel';
 import { RouteBadge, routeFromInferenceSource } from '@/ui/components/RouteBadge';
 import { useOnline } from '@/ui/hooks/useStores';
 import { Button } from '@/ui/primitives/button';
@@ -32,10 +32,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 export function DevPage() {
   const fb = useMemo(() => getFirebase(), []);
   const online = useOnline();
-
-  const [progress, setProgress] = useState<number | null>(null);
-  const [status, setStatus] = useState<DeviceStatus | null>(null);
-  const [preparing, setPreparing] = useState(false);
+  const device = useDeviceState();
 
   const [cloudQ, setCloudQ] = useState('Say hello in five words.');
   const [pending, setPending] = useState<DeclassifyRequest | null>(null);
@@ -47,13 +44,7 @@ export function DevPage() {
   const [cloudError, setCloudError] = useState<string | null>(null);
   const [cloudBusy, setCloudBusy] = useState(false);
 
-  const prepare = async () => {
-    setPreparing(true);
-    setProgress(0);
-    const s = await prepareThisDevice((p) => setProgress(p));
-    setStatus(s);
-    setPreparing(false);
-  };
+  const prepare = () => void deviceSessions.prepare();
 
   const askCloud = (e: FormEvent) => {
     e.preventDefault();
@@ -132,25 +123,23 @@ export function DevPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <Button onClick={prepare} disabled={preparing} className="self-start">
-            {preparing ? 'Preparing…' : 'Prepare this device'}
+          <Button onClick={prepare} disabled={device.state === 'preparing'} className="self-start">
+            {device.state === 'preparing' ? 'Preparing…' : 'Prepare this device'}
           </Button>
-          {progress !== null && (
+          {device.state === 'preparing' && (
             <div>
               <progress
                 className="h-2 w-full accent-primary"
-                value={progress}
+                value={device.progress}
                 max={1}
                 aria-label="Download progress"
               />
-              <p className="text-xs text-muted-foreground">{Math.round(progress * 100)}%</p>
+              <p className="text-xs text-muted-foreground">{Math.round(device.progress * 100)}%</p>
             </div>
           )}
-          {status && (
+          {device.state !== 'idle' && device.state !== 'preparing' && (
             <p className="text-sm" role="status">
-              {status.state === 'ready'
-                ? `Ready (${status.kind})`
-                : `Unavailable: ${status.reason}`}
+              {device.state === 'ready' ? 'Ready (firebase)' : `Unavailable: ${device.reason}`}
             </p>
           )}
         </CardContent>

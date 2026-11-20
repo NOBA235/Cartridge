@@ -109,7 +109,7 @@ function WaitingList({ onApprove }: { onApprove: (item: QueueView) => void }) {
 function AskWith({ loaded }: { loaded: LoadedCartridge }) {
   const inputId = useId();
   const settings = useSettings();
-  const device = useDeviceState(loaded.cartridge);
+  const device = useDeviceState();
   const history = useSyncExternalStore(askHistory.subscribe, askHistory.get);
   const [question, setQuestion] = useState('');
   const [busy, setBusy] = useState(false);
@@ -157,7 +157,7 @@ function AskWith({ loaded }: { loaded: LoadedCartridge }) {
     setBusy(true);
     try {
       const answer = await askQuestion(asPrivate(text, 'user-question'), loaded, {
-        device: deviceSessions.handle(loaded.cartridge),
+        device: deviceSessions.handle(),
         cloud: cloudJson,
         online: () => connectivity.online(),
         cloudAllowed: settings.cloudWhenNeeded.ask,
@@ -246,7 +246,7 @@ function AskWith({ loaded }: { loaded: LoadedCartridge }) {
       <div className="rounded-xl border p-4">
         <CloudSetting screen="ask" />
       </div>
-      <DevicePanel cartridge={loaded.cartridge} />
+      <DevicePanel />
       <Receipt />
 
       <DeclassifyDialog

@@ -5,7 +5,6 @@
  * result is saved on the cartridge version that was tested.
  */
 import { cloudJson } from '@/ai/cloud';
-import { createEdgeModel } from '@/ai/device';
 import { deviceSessions } from '@/ai/deviceSessions';
 import { loadAskContext } from '@/cartridge/askSession';
 import { benchesStore, cartridgesStore } from '@/cartridge/store';
@@ -14,6 +13,7 @@ import { storageErrorMessage } from '@/lib/storageErrors';
 import { createStore } from '@/lib/store';
 import { draftBench, runBench, type BenchItemResult } from './bench';
 import type { EdgeBenchReport } from './benchTypes';
+import { edgeModelFor } from './edgeSessions';
 
 export type BenchJob =
   | { status: 'drafting' }
@@ -66,13 +66,13 @@ export const benchJobs = {
       if (!ctx) throw new Error('This cartridge is no longer on this device.');
       const bench = await benchesStore.get(cartridgeId);
       if (!bench) throw new Error('There are no connections to test yet.');
-      if (!deviceSessions.handle(ctx.cartridge)?.ready) {
+      if (deviceSessions.state().state !== 'ready') {
         throw new Error('Gemini Nano is not ready on this device. Prepare this device first.');
       }
-      const model = createEdgeModel(ctx.cartridge.rules.map((r) => r.id));
-      const status = await model.prepare(() => {});
-      if (status.state !== 'ready')
-        throw new Error(`Gemini Nano is not available: ${status.reason}`);
+      const model = await edgeModelFor();
+      if (!model) {
+        throw new Error('Gemini Nano is not available on this device.');
+      }
       const { report, results } = await runBench(bench, ctx, model, {
         signal: ctrl.signal,
         onProgress: (p) => set(cartridgeId, { status: 'running', ...p }),

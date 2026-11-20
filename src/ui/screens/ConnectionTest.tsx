@@ -226,7 +226,7 @@ function TestFor({ loaded }: { loaded: LoadedCartridge }) {
   const c = loaded.cartridge;
   const bench = useBench(c.id);
   const job = useJob(c.id);
-  const device = useDeviceState(c);
+  const device = useDeviceState();
   const online = useConnectivity();
   const cloudOk = online.browserOnline && !online.simulatedOffline;
   const reviewedId = useId();

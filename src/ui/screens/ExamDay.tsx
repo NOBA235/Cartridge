@@ -160,7 +160,7 @@ function ExamFor({ loaded, onSaved }: { loaded: LoadedCartridge; onSaved: () => 
   const id = loaded.cartridge.id;
   const newExamId = useId();
   const job = useJob(id);
-  const device = useDeviceState(loaded.cartridge);
+  const device = useDeviceState();
   const online = useConnectivity();
   const [saved, setSaved] = useState<ExamSet | undefined | null>(null);
   const [newExam, setNewExam] = useState(false);
@@ -206,7 +206,7 @@ function ExamFor({ loaded, onSaved }: { loaded: LoadedCartridge; onSaved: () => 
           The rulebook for this cartridge is not on this device.
         </p>
       )}
-      <DevicePanel cartridge={loaded.cartridge} />
+      <DevicePanel />
 
       {!running && (
         <section className="flex flex-col gap-3 rounded-xl border p-5">

@@ -1,8 +1,9 @@
 /**
  * FirebaseDeviceModel: Gemini Nano in Chrome, through Firebase AI Logic only.
  *
- * One instance per cartridge version: the response schema (an enum of every
- * rule ID plus NONE) is fixed when the GenerativeModel is created.
+ * Uses a small fixed candidate-slot schema (C1..C5 plus NONE), so one shared
+ * model instance works across every cartridge and version without rebuilding
+ * grammar constraints for up to 120 rule IDs.
  *
  * Privacy guards (see README, "On-device fallback guard"):
  * In @firebase/ai 13.3.0, if the browser has no Prompt API, getGenerativeModel()
@@ -18,7 +19,7 @@
  */
 import { getGenerativeModel, InferenceMode, InferenceSource } from 'firebase/ai';
 import { z } from 'zod';
-import { NONE } from '@/cartridge/types';
+import { NONE, type Rule } from '@/cartridge/types';
 import { config } from '@/config';
 import { reveal } from '@/privacy';
 import { egressLog, utf8Bytes } from '@/telemetry/egress';
@@ -36,12 +37,29 @@ import { getFirebase } from './firebase';
 import {
   buildDeviceEdgePrompt,
   buildDeviceSelectPrompt,
+  CANDIDATE_SLOTS,
   DEVICE_EDGE_SYSTEM,
   DEVICE_SELECT_SYSTEM,
 } from './prompts';
 
 /** RFC 2606 reserved TLD: never resolves. */
 export const DEVICE_ONLY_BASE_URL = 'https://on-device-only.invalid';
+
+const CHOICE_ENUM = [...CANDIDATE_SLOTS, NONE] as const;
+type SlotChoice = (typeof CHOICE_ENUM)[number];
+
+const SelectOutputSchema = z.object({
+  choice: z.enum(CHOICE_ENUM),
+  quantity: z.number(),
+});
+
+const EdgeOutputSchema = z.object({
+  choice: z.enum(CHOICE_ENUM),
+  triggersWhenCondition: z.boolean(),
+  matchesException: z.boolean(),
+  matchedExceptionIndex: z.number().int(),
+  outOfScope: z.boolean(),
+});
 
 /** The part of GenerativeModel we use. Lets tests inject a fake. */
 export interface DeviceModelLike {
@@ -61,19 +79,32 @@ export interface DeviceModelParams {
 export type DeviceModelFactory = (params: DeviceModelParams) => DeviceModelLike;
 
 /**
- * Plain JSON schema for the on-device responseConstraint (the docs allow either
- * Schema helpers or plain JSON schema; Schema.toJSON() is internal to the SDK,
- * so we write the plain form).
+ * Plain JSON schema for on-device rule selection. Fixed at 5 candidate slots
+ * (C1..C5) plus NONE, regardless of how many rules the cartridge has.
  */
-export function buildSelectSchema(ruleIds: readonly string[]) {
+export function buildSelectSchema() {
   return {
     type: 'object',
     properties: {
-      ruleId: { type: 'string', enum: [...ruleIds, NONE] },
+      choice: { type: 'string', enum: [...CHOICE_ENUM] },
       quantity: { type: 'number' },
     },
-    required: ['ruleId', 'quantity'],
+    required: ['choice', 'quantity'],
   } as const;
+}
+
+/** Resolves a slot choice ('C1'..'C5' or 'NONE') back to the candidate rule, or rejects out-of-range slots. */
+function resolveSlot(choice: SlotChoice, candidates: readonly Rule[]): Rule | null {
+  if (choice === NONE) return null;
+  const idx = CANDIDATE_SLOTS.indexOf(choice);
+  const rule = candidates[idx];
+  if (!rule) {
+    throw new DeviceError(
+      `Device model chose ${choice}, but only ${candidates.length} candidate${candidates.length === 1 ? '' : 's'} were shown.`,
+      'BAD_OUTPUT',
+    );
+  }
+  return rule;
 }
 
 /** True if the SDK built an on-device adapter for this model. Fails closed. */
@@ -190,54 +221,46 @@ async function promptOnDevice(model: DeviceModelLike, prompt: string): Promise<u
   }
 }
 
-/** Plain JSON schema for the edge facts. NONE and '' stand for null (see buildDeviceEdgePrompt). */
-export function buildEdgeSchema(ruleIds: readonly string[]) {
+/**
+ * Plain JSON schema for edge facts. Uses fixed candidate slots (C1..C5 + NONE)
+ * and a 0-based integer exception index (-1 when no exception applies) so the
+ * on-device model never has to copy exception prose verbatim.
+ */
+export function buildEdgeSchema() {
   return {
     type: 'object',
     properties: {
-      matchedRuleId: { type: 'string', enum: [...ruleIds, NONE] },
+      choice: { type: 'string', enum: [...CHOICE_ENUM] },
       triggersWhenCondition: { type: 'boolean' },
       matchesException: { type: 'boolean' },
-      matchedExceptionText: { type: 'string' },
+      matchedExceptionIndex: { type: 'integer' },
       outOfScope: { type: 'boolean' },
     },
     required: [
-      'matchedRuleId',
+      'choice',
       'triggersWhenCondition',
       'matchesException',
-      'matchedExceptionText',
+      'matchedExceptionIndex',
       'outOfScope',
     ],
   } as const;
 }
 
-/** Gemini Nano for connections, with the same guards as FirebaseDeviceModel. One per cartridge version. */
+/** Gemini Nano for connections, with the same guards as FirebaseDeviceModel. Shared across cartridges. */
 export class FirebaseEdgeModel implements EdgeDeviceModel {
   readonly kind = 'firebase' as const;
   private model: DeviceModelLike | undefined;
   private ready = false;
-  private readonly ruleIds: readonly string[];
   private readonly factory: DeviceModelFactory;
-  private readonly outputSchema;
 
-  constructor(ruleIds: readonly string[], factory: DeviceModelFactory = firebaseFactory) {
-    if (ruleIds.length === 0) throw new Error('FirebaseEdgeModel needs at least one rule ID');
-    this.ruleIds = ruleIds;
+  constructor(factory: DeviceModelFactory = firebaseFactory) {
     this.factory = factory;
-    const [first, ...rest] = [...ruleIds, NONE];
-    this.outputSchema = z.object({
-      matchedRuleId: z.enum([first as string, ...rest]),
-      triggersWhenCondition: z.boolean(),
-      matchesException: z.boolean(),
-      matchedExceptionText: z.string(),
-      outOfScope: z.boolean(),
-    });
   }
 
   async prepare(onProgress: (fraction: number) => void): Promise<DeviceStatus> {
     try {
       this.model ??= this.factory({
-        responseConstraint: buildEdgeSchema(this.ruleIds),
+        responseConstraint: buildEdgeSchema(),
         systemPrompt: DEVICE_EDGE_SYSTEM,
         languages: [...config.deviceLanguages],
       });
@@ -254,6 +277,12 @@ export class FirebaseEdgeModel implements EdgeDeviceModel {
     if (!this.model || !this.ready) {
       throw new DeviceError('Prepare this device first.', 'NOT_PREPARED');
     }
+    if (candidates.length > CANDIDATE_SLOTS.length) {
+      throw new DeviceError(
+        `Too many candidate rules for the device (${candidates.length}, max ${CANDIDATE_SLOTS.length}).`,
+        'PROMPT_TOO_LONG',
+      );
+    }
     const prompt = buildDeviceEdgePrompt(reveal(edge), candidates);
     if (prompt.length > config.deviceMaxPromptChars) {
       throw new DeviceError(
@@ -261,7 +290,7 @@ export class FirebaseEdgeModel implements EdgeDeviceModel {
         'PROMPT_TOO_LONG',
       );
     }
-    const parsed = this.outputSchema.safeParse(await promptOnDevice(this.model, prompt));
+    const parsed = EdgeOutputSchema.safeParse(await promptOnDevice(this.model, prompt));
     if (!parsed.success) {
       throw new DeviceError(
         `Device output failed validation: ${parsed.error.message}`,
@@ -269,12 +298,12 @@ export class FirebaseEdgeModel implements EdgeDeviceModel {
       );
     }
     const f = parsed.data;
-    const text = f.matchedExceptionText.trim();
+    const matched = resolveSlot(f.choice, candidates);
     return {
-      matchedRuleId: f.matchedRuleId === NONE ? null : f.matchedRuleId,
+      matchedRuleId: matched ? matched.id : null,
       triggersWhenCondition: f.triggersWhenCondition,
       matchesException: f.matchesException,
-      matchedExceptionText: text === '' ? null : text,
+      matchedExceptionIndex: f.matchedExceptionIndex >= 0 ? f.matchedExceptionIndex : null,
       outOfScope: f.outOfScope,
       source: 'ON_DEVICE',
     };
@@ -285,25 +314,16 @@ export class FirebaseDeviceModel implements DeviceModel {
   readonly kind = 'firebase' as const;
   private model: DeviceModelLike | undefined;
   private ready = false;
-  private readonly ruleIds: readonly string[];
   private readonly factory: DeviceModelFactory;
-  private readonly outputSchema: z.ZodType<{ ruleId: string; quantity: number }>;
 
-  constructor(ruleIds: readonly string[], factory: DeviceModelFactory = firebaseFactory) {
-    if (ruleIds.length === 0) throw new Error('FirebaseDeviceModel needs at least one rule ID');
-    this.ruleIds = ruleIds;
+  constructor(factory: DeviceModelFactory = firebaseFactory) {
     this.factory = factory;
-    const [first, ...rest] = [...ruleIds, NONE];
-    this.outputSchema = z.object({
-      ruleId: z.enum([first as string, ...rest]),
-      quantity: z.number(),
-    });
   }
 
   async prepare(onProgress: (fraction: number) => void): Promise<DeviceStatus> {
     try {
       this.model ??= this.factory({
-        responseConstraint: buildSelectSchema(this.ruleIds),
+        responseConstraint: buildSelectSchema(),
         systemPrompt: DEVICE_SELECT_SYSTEM,
         languages: [...config.deviceLanguages],
       });
@@ -320,6 +340,12 @@ export class FirebaseDeviceModel implements DeviceModel {
     if (!this.model || !this.ready) {
       throw new DeviceError('Prepare this device first.', 'NOT_PREPARED');
     }
+    if (candidates.length > CANDIDATE_SLOTS.length) {
+      throw new DeviceError(
+        `Too many candidate rules for the device (${candidates.length}, max ${CANDIDATE_SLOTS.length}).`,
+        'PROMPT_TOO_LONG',
+      );
+    }
     const prompt = buildDeviceSelectPrompt(reveal(question), candidates);
     if (prompt.length > config.deviceMaxPromptChars) {
       throw new DeviceError(
@@ -329,13 +355,18 @@ export class FirebaseDeviceModel implements DeviceModel {
     }
 
     const json = await promptOnDevice(this.model, prompt);
-    const parsed = this.outputSchema.safeParse(json);
+    const parsed = SelectOutputSchema.safeParse(json);
     if (!parsed.success) {
       throw new DeviceError(
         `Device output failed validation: ${parsed.error.message}`,
         'BAD_OUTPUT',
       );
     }
-    return { ...parsed.data, source: 'ON_DEVICE' };
+    const matched = resolveSlot(parsed.data.choice, candidates);
+    return {
+      ruleId: matched ? matched.id : NONE,
+      quantity: parsed.data.quantity,
+      source: 'ON_DEVICE',
+    };
   }
 }

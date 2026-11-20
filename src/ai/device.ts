@@ -9,12 +9,12 @@ import { FirebaseDeviceModel, FirebaseEdgeModel } from './firebaseDevice';
 
 export { prepareThisDevice } from './firebaseDevice';
 
-/** One device model per cartridge version: its response schema allows exactly these IDs plus NONE. */
-export function createDeviceModel(ruleIds: readonly string[]): DeviceModel {
-  return new FirebaseDeviceModel(ruleIds);
+/** One shared device model: its response schema is fixed at 5 candidate slots (C1..C5) plus NONE. */
+export function createDeviceModel(): DeviceModel {
+  return new FirebaseDeviceModel();
 }
 
-/** The model that reports facts about one connection (the Blueprint canvas and its test). */
-export function createEdgeModel(ruleIds: readonly string[]): EdgeDeviceModel {
-  return new FirebaseEdgeModel(ruleIds);
+/** One shared connection model for the Blueprint canvas and its connection test. */
+export function createEdgeModel(): EdgeDeviceModel {
+  return new FirebaseEdgeModel();
 }
