@@ -7,7 +7,11 @@ numbered rules — answered and audited live by Gemini Nano on your own device.
 
 <!-- Demo GIF: docs/demo.gif -->
 
-Built for the #BuildHybridAI 2026 hackathon with Firebase AI Logic (cloud Gemini plus Gemini Nano in Chrome).
+Built for the #BuildHybridAI 2026 hackathon with **Firebase AI Logic** (cloud Gemini plus Gemini Nano in Chrome), **App Check**, **Remote Config**, **Firestore**, **Authentication**, and **Firebase Hosting**.
+
+- **Try it in 1 click:** ships with a real, pre-compiled 74-rule **OWASP ASVS 5.0** starter cartridge (`CC BY-SA 4.0`) whose quotes verify live on your device.
+- **Adaptive Light & Dark mode:** follows your OS preference automatically (`color-scheme: light dark` + `light-dark()`) with a header theme toggle and adaptive Blueprint canvas.
+- **Offline typography:** bundles `@fontsource-variable/inter` locally so UI typography renders cleanly without network access.
 
 > Reference tool, not an official authority.
 
@@ -44,6 +48,8 @@ the device.
 | Connection test: draft the connections    | Cloud, when you press Draft                     | The public rules (titles, conditions, exceptions, severity), no quotes                                                         |
 | Connection test: run it                   | This device (Gemini Nano), never the cloud      | Nothing                                                                                                                        |
 | Blueprint canvas: checking connections    | This device (Gemini Nano), never the cloud      | Nothing                                                                                                                        |
+| Public Cartridge Library (optional)       | Firebase Firestore (+ Firebase Auth to publish) | Only openly licensed, user-confirmed public standards and compiled cartridges; re-verified locally on install                  |
+| Hybrid configuration (Remote Config)      | Firebase Remote Config (offline defaults local) | Read-only config fetch for cloud model IDs and quality-gate thresholds                                                         |
 | Developer page (`/dev`) test buttons      | Cloud                                           | A fixed test prompt                                                                                                            |
 | Opening the app                           | The app's own host, then this device            | Requests for the app's own files; after the first visit they are saved on the device                                           |
 
@@ -228,7 +234,7 @@ Production builds use reCAPTCHA Enterprise for App Check (never the debug provid
    ```sh
    npm run build
    npx firebase-tools login
-   npx firebase-tools deploy --only hosting --project <project-id>
+   npx firebase-tools deploy --only hosting,firestore:rules --project <project-id>
    ```
 
 4. Once App Check metrics show your app's requests as verified, enforce App Check for Firebase AI
@@ -239,18 +245,20 @@ the service worker, and caches the content-named files in `/assets` for a year.
 
 ## Where Firebase AI Logic is called
 
-| What                                                             | File                                                                                 | Mode                                   |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------- |
-| App, App Check, `getAI(GoogleAIBackend)`                         | [src/ai/firebase.ts](src/ai/firebase.ts)                                             |                                        |
-| Cloud tasks (`cloudJson`)                                        | [src/ai/cloud.ts](src/ai/cloud.ts)                                                   | `InferenceMode.ONLY_IN_CLOUD`          |
-| Making a cartridge (per section, plus one repair call if needed) | [src/cartridge/compile.ts](src/cartridge/compile.ts)                                 | through `cloudJson`                    |
-| Exam Day: writing the exam, and the tutor                        | [src/exam/generate.ts](src/exam/generate.ts), [src/exam/tutor.ts](src/exam/tutor.ts) | through `cloudJson`                    |
-| Exam Day: answering the questions                                | [src/exam/run.ts](src/exam/run.ts)                                                   | Gemini Nano only, never the cloud      |
-| After approving a suggested rule: test questions for it          | [src/exam/check.ts](src/exam/check.ts)                                               | through `cloudJson` (public rule text) |
-| After approving a suggested rule: answering the check            | [src/exam/check.ts](src/exam/check.ts)                                               | Gemini Nano only, never the cloud      |
-| Device rule selection (Gemini Nano)                              | [src/ai/firebaseDevice.ts](src/ai/firebaseDevice.ts)                                 | `InferenceMode.ONLY_ON_DEVICE`         |
-| Connection test: drafting the connections                        | [src/canvas/bench.ts](src/canvas/bench.ts)                                           | through `cloudJson` (public rule text) |
-| Connection facts (Gemini Nano, `FirebaseEdgeModel`)              | [src/ai/firebaseDevice.ts](src/ai/firebaseDevice.ts)                                 | `InferenceMode.ONLY_ON_DEVICE`         |
+| What                                                             | File                                                                                                   | Mode                                   |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------- |
+| App, App Check, `getAI(GoogleAIBackend)`                         | [src/ai/firebase.ts](src/ai/firebase.ts)                                                               |                                        |
+| Cloud tasks (`cloudJson`)                                        | [src/ai/cloud.ts](src/ai/cloud.ts)                                                                     | `InferenceMode.ONLY_IN_CLOUD`          |
+| Making a cartridge (per section, plus one repair call if needed) | [src/cartridge/compile.ts](src/cartridge/compile.ts)                                                   | through `cloudJson`                    |
+| Exam Day: writing the exam, and the tutor                        | [src/exam/generate.ts](src/exam/generate.ts), [src/exam/tutor.ts](src/exam/tutor.ts)                   | through `cloudJson`                    |
+| Exam Day: answering the questions                                | [src/exam/run.ts](src/exam/run.ts)                                                                     | Gemini Nano only, never the cloud      |
+| After approving a suggested rule: test questions for it          | [src/exam/check.ts](src/exam/check.ts)                                                                 | through `cloudJson` (public rule text) |
+| After approving a suggested rule: answering the check            | [src/exam/check.ts](src/exam/check.ts)                                                                 | Gemini Nano only, never the cloud      |
+| Device rule selection (Gemini Nano)                              | [src/ai/firebaseDevice.ts](src/ai/firebaseDevice.ts)                                                   | `InferenceMode.ONLY_ON_DEVICE`         |
+| Connection test: drafting the connections                        | [src/canvas/bench.ts](src/canvas/bench.ts)                                                             | through `cloudJson` (public rule text) |
+| Connection facts (Gemini Nano, `FirebaseEdgeModel`)              | [src/ai/firebaseDevice.ts](src/ai/firebaseDevice.ts)                                                   | `InferenceMode.ONLY_ON_DEVICE`         |
+| Tunable cloud models & hybrid thresholds (Remote Config)         | [src/ai/remoteConfig.ts](src/ai/remoteConfig.ts)                                                       | `firebase/remote-config`               |
+| Public Cartridge Library & Auth (public standards only)          | [src/library/firestoreLibrary.ts](src/library/firestoreLibrary.ts), [firestore.rules](firestore.rules) | `firebase/firestore`, `firebase/auth`  |
 
 The raw Chrome `LanguageModel` API is never called (ESLint blocks it).
 

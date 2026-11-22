@@ -10,6 +10,7 @@ import { sourcesStore } from '@/cartridge/store';
 import { verifyQuote, type VerifyResult } from '@/cartridge/verifyQuote';
 import { CartridgeList } from '@/ui/components/CartridgeList';
 import { CompilePanel } from '@/ui/components/CompilePanel';
+import { PublicLibrary } from '@/ui/components/PublicLibrary';
 import { SourceContext } from '@/ui/components/SourceContext';
 import { Button } from '@/ui/primitives/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/primitives/card';
@@ -470,6 +471,7 @@ export function LoadRulebook() {
       </section>
 
       <CartridgeList />
+      <PublicLibrary />
     </section>
   );
 }

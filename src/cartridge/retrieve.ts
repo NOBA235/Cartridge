@@ -6,6 +6,7 @@
  * covered and no model is asked (LOW_RETRIEVAL).
  */
 import MiniSearch from 'minisearch';
+import { runtimeConfig } from '@/ai/remoteConfig';
 import { config } from '@/config';
 import { fuzzyFor, prefixFor, processTerm } from './searchTerms';
 import type { Cartridge, Rule } from './types';
@@ -52,7 +53,7 @@ export function buildRuleIndex(cartridge: Pick<Cartridge, 'id' | 'version' | 'ru
     key: `${cartridge.id}@${cartridge.version}`,
     search(question, options = {}) {
       const topK = options.topK ?? config.ask.topK;
-      const minScore = options.minScore ?? config.ask.minScore;
+      const minScore = options.minScore ?? runtimeConfig.values().askMinScore;
       const hits = mini
         .search(question)
         .slice(0, topK)

@@ -5,8 +5,8 @@
  * A missing group (no critical or no out-of-scope question in held-out) means
  * not ready, unless the cartridge has no critical rules at all.
  */
+import { runtimeConfig } from '@/ai/remoteConfig';
 import type { ExamReport, Rule } from '@/cartridge/types';
-import { config } from '@/config';
 import type { ExamItem, ExamResult } from './types';
 
 export interface Tally {
@@ -45,9 +45,10 @@ export interface ReportInput {
 }
 
 export function buildReport(input: ReportInput): ExamReport {
+  const rc = runtimeConfig.values();
   const thresholds = input.thresholds ?? {
-    criticalPassRate: config.exam.readyCriticalPassRate,
-    outOfScopeRate: config.exam.readyOutOfScopeRate,
+    criticalPassRate: rc.examReadyCriticalPassRate,
+    outOfScopeRate: rc.examReadyOutOfScopeRate,
   };
   const category = new Map(input.items.map((i) => [i.id, i.category]));
   const counts = {

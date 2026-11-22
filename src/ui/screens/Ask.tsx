@@ -15,6 +15,7 @@ import {
 } from 'react';
 import { cloudJson } from '@/ai/cloud';
 import { deviceSessions } from '@/ai/deviceSessions';
+import { runtimeConfig } from '@/ai/remoteConfig';
 import { askQuestion, type ApprovalRequest } from '@/cartridge/ask';
 import {
   askHistory,
@@ -22,7 +23,6 @@ import {
   rememberProposal,
   type LoadedCartridge,
 } from '@/cartridge/askSession';
-import { config } from '@/config';
 import { STARTER_STANDARD } from '@/cartridge/starter';
 import { asPrivate, type Public } from '@/privacy';
 import { connectivity } from '@/queue/connectivity';
@@ -135,8 +135,8 @@ function AskWith({ loaded }: { loaded: LoadedCartridge }) {
             scope: 'ask',
             destination:
               req.when === 'now'
-                ? `the cloud model (${config.cloudModels.ANSWER}) through Firebase AI Logic`
-                : `the cloud model (${config.cloudModels.ANSWER}) through Firebase AI Logic as soon as there is signal`,
+                ? `the cloud model (${runtimeConfig.cloudModel('ANSWER')}) through Firebase AI Logic`
+                : `the cloud model (${runtimeConfig.cloudModel('ANSWER')}) through Firebase AI Logic as soon as there is signal`,
             fullRequest: req.plan.preview,
             context: req.detail,
             approveLabel:
@@ -186,7 +186,7 @@ function AskWith({ loaded }: { loaded: LoadedCartridge }) {
         value: asPrivate(item.question, 'user-question'),
         purpose: 'Send a question saved while there was no signal',
         scope: 'ask',
-        destination: `the cloud model (${config.cloudModels.ANSWER}) through Firebase AI Logic`,
+        destination: `the cloud model (${runtimeConfig.cloudModel('ANSWER')}) through Firebase AI Logic`,
         approveLabel: 'Approve and send',
       },
     });

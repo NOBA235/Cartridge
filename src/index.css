@@ -1,63 +1,195 @@
 @import 'tailwindcss';
 
 /*
- * Theme tokens follow the shadcn/ui Tailwind v4 convention (CSS variables mapped
- * through @theme inline). One accent colour (indigo) on neutral surfaces.
- * Inter is listed first; it is not bundled, so the system UI font is the
- * offline fallback.
+ * Adaptive light & dark theme tokens built on CSS `color-scheme` and `light-dark()`.
+ * - Default follows OS preference via `<meta name="color-scheme" content="light dark">`.
+ * - User overrides update the `<meta>` tag and are reflected to `:root` so CSS
+ *   `color-scheme` and `light-dark()` react without fighting the presentational hint.
+ * - Bundled Inter Variable (@fontsource-variable/inter) renders offline with system fallback.
  */
 
-@custom-variant dark (&:is(.dark *));
-
-:root {
-  --radius: 0.5rem;
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.205 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.205 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.205 0 0);
-  --primary: oklch(0.511 0.23 276.97);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.955 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.955 0 0);
-  --muted-foreground: oklch(0.48 0 0);
-  --accent: oklch(0.955 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.9 0 0);
-  --input: oklch(0.9 0 0);
-  --ring: oklch(0.511 0.23 276.97);
-  --success: oklch(0.6 0.15 150);
-  --warning: oklch(0.75 0.16 75);
+@custom-variant dark {
+  &:where(:root:has(> head > meta[name='color-scheme'][content='dark']) *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not(:has(> head > meta[name='color-scheme'][content='light'])) *) {
+      @slot;
+    }
+  }
 }
 
-.dark {
-  --background: oklch(0.16 0.005 270);
-  --foreground: oklch(0.96 0 0);
-  --card: oklch(0.2 0.005 270);
-  --card-foreground: oklch(0.96 0 0);
-  --popover: oklch(0.2 0.005 270);
-  --popover-foreground: oklch(0.96 0 0);
-  --primary: oklch(0.673 0.182 276.935);
-  --primary-foreground: oklch(0.16 0.005 270);
-  --secondary: oklch(0.26 0.005 270);
-  --secondary-foreground: oklch(0.96 0 0);
-  --muted: oklch(0.26 0.005 270);
-  --muted-foreground: oklch(0.72 0 0);
-  --accent: oklch(0.28 0.005 270);
-  --accent-foreground: oklch(0.96 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 16%);
-  --ring: oklch(0.673 0.182 276.935);
-  --success: oklch(0.72 0.15 150);
-  --warning: oklch(0.8 0.15 80);
+:root {
+  color-scheme: light dark;
+
+  &:has(> head > meta[name='color-scheme'][content='dark']) {
+    color-scheme: dark;
+  }
+  &:has(> head > meta[name='color-scheme'][content='light']) {
+    color-scheme: light;
+  }
+
+  --radius: 0.5rem;
+
+  /* Raw light & dark palette (WCAG AA >= 4.5:1 text, >= 3:1 UI contrast in both modes) */
+  --background-light: oklch(0.985 0.002 270);
+  --background-dark: oklch(0.16 0.006 270);
+  --foreground-light: oklch(0.19 0.01 270);
+  --foreground-dark: oklch(0.96 0.003 270);
+  --card-light: oklch(1 0 0);
+  --card-dark: oklch(0.205 0.007 270);
+  --card-foreground-light: oklch(0.19 0.01 270);
+  --card-foreground-dark: oklch(0.96 0.003 270);
+  --popover-light: oklch(1 0 0);
+  --popover-dark: oklch(0.205 0.007 270);
+  --popover-foreground-light: oklch(0.19 0.01 270);
+  --popover-foreground-dark: oklch(0.96 0.003 270);
+  --primary-light: oklch(0.47 0.22 276);
+  --primary-dark: oklch(0.7 0.175 276);
+  --primary-foreground-light: oklch(0.985 0 0);
+  --primary-foreground-dark: oklch(0.15 0.01 270);
+  --secondary-light: oklch(0.945 0.004 270);
+  --secondary-dark: oklch(0.265 0.008 270);
+  --secondary-foreground-light: oklch(0.2 0.01 270);
+  --secondary-foreground-dark: oklch(0.96 0.003 270);
+  --muted-light: oklch(0.95 0.004 270);
+  --muted-dark: oklch(0.255 0.008 270);
+  --muted-foreground-light: oklch(0.44 0.01 270);
+  --muted-foreground-dark: oklch(0.74 0.008 270);
+  --accent-light: oklch(0.935 0.008 270);
+  --accent-dark: oklch(0.29 0.01 270);
+  --accent-foreground-light: oklch(0.2 0.01 270);
+  --accent-foreground-dark: oklch(0.96 0.003 270);
+  --destructive-light: oklch(0.51 0.21 26);
+  --destructive-dark: oklch(0.71 0.185 22);
+  --border-light: oklch(0.84 0.006 270);
+  --border-dark: oklch(1 0 0 / 15%);
+  --input-light: oklch(0.78 0.008 270);
+  --input-dark: oklch(1 0 0 / 20%);
+  --ring-light: oklch(0.47 0.22 276);
+  --ring-dark: oklch(0.7 0.175 276);
+  --success-light: oklch(0.45 0.145 152);
+  --success-dark: oklch(0.74 0.15 152);
+  --warning-light: oklch(0.5 0.155 58);
+  --warning-dark: oklch(0.81 0.15 78);
+  --scrollbar-thumb-light: oklch(0.68 0.008 270);
+  --scrollbar-thumb-dark: oklch(0.42 0.01 270);
+
+  /* Fallback tokens for browsers without light-dark() */
+  --background: var(--background-light);
+  --foreground: var(--foreground-light);
+  --card: var(--card-light);
+  --card-foreground: var(--card-foreground-light);
+  --popover: var(--popover-light);
+  --popover-foreground: var(--popover-foreground-light);
+  --primary: var(--primary-light);
+  --primary-foreground: var(--primary-foreground-light);
+  --secondary: var(--secondary-light);
+  --secondary-foreground: var(--secondary-foreground-light);
+  --muted: var(--muted-light);
+  --muted-foreground: var(--muted-foreground-light);
+  --accent: var(--accent-light);
+  --accent-foreground: var(--accent-foreground-light);
+  --destructive: var(--destructive-light);
+  --border: var(--border-light);
+  --input: var(--input-light);
+  --ring: var(--ring-light);
+  --success: var(--success-light);
+  --warning: var(--warning-light);
+  --scrollbar-thumb: var(--scrollbar-thumb-light);
+
+  accent-color: var(--primary);
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(:has(> head > meta[name='color-scheme'][content='light'])) {
+    --background: var(--background-dark);
+    --foreground: var(--foreground-dark);
+    --card: var(--card-dark);
+    --card-foreground: var(--card-foreground-dark);
+    --popover: var(--popover-dark);
+    --popover-foreground: var(--popover-foreground-dark);
+    --primary: var(--primary-dark);
+    --primary-foreground: var(--primary-foreground-dark);
+    --secondary: var(--secondary-dark);
+    --secondary-foreground: var(--secondary-foreground-dark);
+    --muted: var(--muted-dark);
+    --muted-foreground: var(--muted-foreground-dark);
+    --accent: var(--accent-dark);
+    --accent-foreground: var(--accent-foreground-dark);
+    --destructive: var(--destructive-dark);
+    --border: var(--border-dark);
+    --input: var(--input-dark);
+    --ring: var(--ring-dark);
+    --success: var(--success-dark);
+    --warning: var(--warning-dark);
+    --scrollbar-thumb: var(--scrollbar-thumb-dark);
+  }
+}
+
+:root:has(> head > meta[name='color-scheme'][content='dark']) {
+  --background: var(--background-dark);
+  --foreground: var(--foreground-dark);
+  --card: var(--card-dark);
+  --card-foreground: var(--card-foreground-dark);
+  --popover: var(--popover-dark);
+  --popover-foreground: var(--popover-foreground-dark);
+  --primary: var(--primary-dark);
+  --primary-foreground: var(--primary-foreground-dark);
+  --secondary: var(--secondary-dark);
+  --secondary-foreground: var(--secondary-foreground-dark);
+  --muted: var(--muted-dark);
+  --muted-foreground: var(--muted-foreground-dark);
+  --accent: var(--accent-dark);
+  --accent-foreground: var(--accent-foreground-dark);
+  --destructive: var(--destructive-dark);
+  --border: var(--border-dark);
+  --input: var(--input-dark);
+  --ring: var(--ring-dark);
+  --success: var(--success-dark);
+  --warning: var(--warning-dark);
+  --scrollbar-thumb: var(--scrollbar-thumb-dark);
+}
+
+@supports (color: light-dark(white, black)) {
+  :root {
+    --background: light-dark(var(--background-light), var(--background-dark));
+    --foreground: light-dark(var(--foreground-light), var(--foreground-dark));
+    --card: light-dark(var(--card-light), var(--card-dark));
+    --card-foreground: light-dark(var(--card-foreground-light), var(--card-foreground-dark));
+    --popover: light-dark(var(--popover-light), var(--popover-dark));
+    --popover-foreground: light-dark(
+      var(--popover-foreground-light),
+      var(--popover-foreground-dark)
+    );
+    --primary: light-dark(var(--primary-light), var(--primary-dark));
+    --primary-foreground: light-dark(
+      var(--primary-foreground-light),
+      var(--primary-foreground-dark)
+    );
+    --secondary: light-dark(var(--secondary-light), var(--secondary-dark));
+    --secondary-foreground: light-dark(
+      var(--secondary-foreground-light),
+      var(--secondary-foreground-dark)
+    );
+    --muted: light-dark(var(--muted-light), var(--muted-dark));
+    --muted-foreground: light-dark(var(--muted-foreground-light), var(--muted-foreground-dark));
+    --accent: light-dark(var(--accent-light), var(--accent-dark));
+    --accent-foreground: light-dark(var(--accent-foreground-light), var(--accent-foreground-dark));
+    --destructive: light-dark(var(--destructive-light), var(--destructive-dark));
+    --border: light-dark(var(--border-light), var(--border-dark));
+    --input: light-dark(var(--input-light), var(--input-dark));
+    --ring: light-dark(var(--ring-light), var(--ring-dark));
+    --success: light-dark(var(--success-light), var(--success-dark));
+    --warning: light-dark(var(--warning-light), var(--warning-dark));
+    --scrollbar-thumb: light-dark(var(--scrollbar-thumb-light), var(--scrollbar-thumb-dark));
+  }
 }
 
 @theme inline {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans:
+    'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -90,6 +222,20 @@
   }
   body {
     @apply bg-background font-sans text-foreground antialiased;
+  }
+}
+
+@media (forced-colors: active) {
+  a,
+  button,
+  input,
+  select,
+  textarea {
+    forced-color-adjust: auto;
+  }
+  :focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
   }
 }
 

@@ -21,6 +21,7 @@ import { assertPublic, type Public } from '@/privacy';
 import { connectivity } from '@/queue/connectivity';
 import { egressLog, utf8Bytes } from '@/telemetry/egress';
 import { getFirebase } from './firebase';
+import { runtimeConfig } from './remoteConfig';
 
 export interface CloudTask {
   readonly name: CloudTaskName;
@@ -171,6 +172,7 @@ export function createCloudClient(deps: CloudDeps): CloudJson {
     }
 
     const model = deps.getModel(task);
+    const modelName = runtimeConfig.cloudModel(task.name);
     const text = prompt.value;
     const bytes = utf8Bytes(text);
     const causes: string[] = [];
@@ -201,7 +203,7 @@ export function createCloudClient(deps: CloudDeps): CloudJson {
         egressLog.record({
           kind: 'cloud-call',
           label: task.name,
-          model: config.cloudModels[task.name],
+          model: modelName,
           attempt,
           bytesSent: bytes,
           text,
@@ -216,7 +218,7 @@ export function createCloudClient(deps: CloudDeps): CloudJson {
         egressLog.record({
           kind: 'cloud-call',
           label: task.name,
-          model: config.cloudModels[task.name],
+          model: modelName,
           attempt,
           bytesSent: bytes,
           text,
@@ -273,10 +275,12 @@ export function createCloudClient(deps: CloudDeps): CloudJson {
   };
 }
 
-const modelCache = new Map<CloudTaskName, CloudModelLike>();
+const modelCache = new Map<string, CloudModelLike>();
 
 function firebaseCloudModel(task: CloudTask): CloudModelLike {
-  const cached = modelCache.get(task.name);
+  const modelName = runtimeConfig.cloudModel(task.name);
+  const cacheKey = `${task.name}:${modelName}`;
+  const cached = modelCache.get(cacheKey);
   if (cached) return cached;
   const fb = getFirebase();
   if (!fb.ok) throw new CloudError(fb.reason, 'NOT_CONFIGURED', 0);
@@ -285,7 +289,7 @@ function firebaseCloudModel(task: CloudTask): CloudModelLike {
     {
       mode: InferenceMode.ONLY_IN_CLOUD,
       inCloudParams: {
-        model: config.cloudModels[task.name],
+        model: modelName,
         generationConfig: {
           responseMimeType: 'application/json',
           responseSchema: task.responseSchema,
@@ -294,7 +298,7 @@ function firebaseCloudModel(task: CloudTask): CloudModelLike {
     },
     task.timeoutMs ? { timeout: task.timeoutMs } : undefined,
   );
-  modelCache.set(task.name, model);
+  modelCache.set(cacheKey, model);
   return model;
 }
 

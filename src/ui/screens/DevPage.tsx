@@ -3,13 +3,14 @@
  * Prepare this device (real Gemini Nano download) and Ask cloud (real call,
  * after approval). Shows inferenceSource. No stand-in models or sample data.
  */
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useMemo, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react';
 import { cloudJson, CloudError } from '@/ai/cloud';
 import { deviceSessions } from '@/ai/deviceSessions';
 import { getFirebase } from '@/ai/firebase';
 import { DEV_PING_TEMPLATE } from '@/ai/prompts';
-import { config } from '@/config';
+import { runtimeConfig } from '@/ai/remoteConfig';
 import { DEV_PING_TASK, DevPingReply } from '@/dev/devTasks';
+import { libraryAuth } from '@/library/firestoreLibrary';
 import { asPrivate, fillTemplate, type Public } from '@/privacy';
 import { CloudSetting } from '@/ui/components/CloudSetting';
 import { DeclassifyDialog, type DeclassifyRequest } from '@/ui/components/DeclassifyDialog';
@@ -33,6 +34,9 @@ export function DevPage() {
   const fb = useMemo(() => getFirebase(), []);
   const online = useOnline();
   const device = useDeviceState();
+  const rc = useSyncExternalStore(runtimeConfig.subscribe, runtimeConfig.get);
+  const auth = useSyncExternalStore(libraryAuth.subscribe, libraryAuth.get);
+  const [rcBusy, setRcBusy] = useState(false);
 
   const [cloudQ, setCloudQ] = useState('Say hello in five words.');
   const [pending, setPending] = useState<DeclassifyRequest | null>(null);
@@ -54,7 +58,7 @@ export function DevPage() {
       value: asPrivate(cloudQ, 'user-question'),
       purpose: 'Developer page cloud test',
       scope: 'dev',
-      destination: `the cloud model (${config.cloudModels.DEV_PING}) through Firebase AI Logic`,
+      destination: `the cloud model (${runtimeConfig.cloudModel('DEV_PING')}) through Firebase AI Logic`,
       fullRequest: DEV_PING_TEMPLATE.value.replace('{{message}}', cloudQ),
     });
   };
@@ -102,9 +106,35 @@ export function DevPage() {
             <Row label="App Check">{fb.ok ? fb.appCheckMode : 'Not started'}</Row>
             <Row label="Device model">Gemini Nano via Firebase AI Logic</Row>
             <Row label="Network">{online ? 'Online' : 'Offline'}</Row>
+            <Row label="Auth">
+              {auth.user
+                ? `${auth.user.label}${auth.user.isAnonymous ? ' (anonymous)' : ''}`
+                : 'Signed out'}
+            </Row>
+            <Row label="Remote Config">
+              <span className="flex flex-wrap items-center gap-2">
+                <span>
+                  {rc.source} ({rc.overrideCount} override{rc.overrideCount === 1 ? '' : 's'})
+                  {rc.error ? ` — ${rc.error}` : ''}
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-6 px-2 text-xs"
+                  disabled={rcBusy}
+                  onClick={() => {
+                    setRcBusy(true);
+                    void runtimeConfig.refresh().finally(() => setRcBusy(false));
+                  }}
+                >
+                  {rcBusy ? 'Refreshing…' : 'Refresh'}
+                </Button>
+              </span>
+            </Row>
             <Row label="Cloud models">
               <code className="text-xs">
-                {Object.entries(config.cloudModels)
+                {Object.entries(rc.values.cloudModels)
                   .map(([k, v]) => `${k}=${v}`)
                   .join(', ')}
               </code>

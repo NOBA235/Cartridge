@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { offlineShell } from '@/offline/register';
 import { CartridgeSlot } from '@/ui/components/CartridgeSlot';
 import { EgressPanel } from '@/ui/components/EgressPanel';
+import { ThemeToggle } from '@/ui/components/ThemeToggle';
 import { egressPanel } from '@/ui/egressPanelState';
 import { useEgressLog } from '@/ui/hooks/useStores';
 import { Button } from '@/ui/primitives/button';
@@ -106,6 +107,7 @@ export function App() {
             >
               What left this device ({cloudCalls})
             </Button>
+            <ThemeToggle />
           </div>
         </header>
         <main id="main" tabIndex={-1} className="flex-1 px-6 outline-none">

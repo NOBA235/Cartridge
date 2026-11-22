@@ -27,11 +27,11 @@ import '@excalidraw/excalidraw/index.css';
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
 import { cloudJson } from '@/ai/cloud';
 import { deviceSessions } from '@/ai/deviceSessions';
+import { runtimeConfig } from '@/ai/remoteConfig';
 import { canvasMode } from '@/canvas/bench';
 import { EdgeChecker } from '@/canvas/checker';
 import {
   applyPlan,
-  COLOURS,
   isEmptyPlan,
   lookForVerdict,
   planDecorations,
@@ -48,7 +48,6 @@ import { buildTemplate, TEMPLATES } from '@/canvas/templates';
 import { checkQuote } from '@/cartridge/answer';
 import { askCloud, planCloudQuestion, type CloudAnswer, type CloudPlan } from '@/cartridge/ask';
 import { rememberProposal, type LoadedCartridge } from '@/cartridge/askSession';
-import { config } from '@/config';
 import { cn } from '@/lib/utils';
 import { asPrivate, reveal, type Public } from '@/privacy';
 import { egressLog } from '@/telemetry/egress';
@@ -62,6 +61,7 @@ import { useConnectivity } from '@/ui/components/NoSignalSwitch';
 import { SeverityChip } from '@/ui/components/SeverityChip';
 import { SourceContext } from '@/ui/components/SourceContext';
 import { StarterButton } from '@/ui/components/StarterButton';
+import { useResolvedTheme } from '@/ui/components/ThemeToggle';
 import { useCartridges, useLoadedCartridge } from '@/ui/hooks/useCartridges';
 import { useEgressLog } from '@/ui/hooks/useStores';
 import { Button, buttonVariants } from '@/ui/primitives/button';
@@ -159,7 +159,7 @@ function GeneralisedCloudAsk({ ctx, edgeText }: { ctx: LoadedCartridge; edgeText
         value: asPrivate(text, 'user-question'),
         purpose: 'Ask the cloud about a generalised architecture pattern',
         scope: 'canvas',
-        destination: `the cloud model (${config.cloudModels.ANSWER}) through Firebase AI Logic`,
+        destination: `the cloud model (${runtimeConfig.cloudModel('ANSWER')}) through Firebase AI Logic`,
         fullRequest: plan.preview,
         context:
           'You wrote this generalised wording yourself. Nothing from your diagram is added automatically.',
@@ -501,6 +501,7 @@ function Canvas({ ctx }: { ctx: LoadedCartridge | null }) {
   const initial = useMemo(() => loadSaved(), []);
 
   const device = useDeviceState();
+  const resolvedTheme = useResolvedTheme();
   const ready = ctx !== null && device.state === 'ready';
   const mode: CanvasMode = ctx ? canvasMode(ctx.cartridge) : 'advisory';
   const versionKey = ctx ? `${ctx.cartridge.id}@${ctx.cartridge.version}` : '';
@@ -708,7 +709,7 @@ function Canvas({ ctx }: { ctx: LoadedCartridge | null }) {
         >
           <Excalidraw
             excalidrawAPI={setApi}
-            theme="dark"
+            theme={resolvedTheme}
             gridModeEnabled
             aiEnabled={false}
             validateEmbeddable={() => false}
@@ -792,7 +793,15 @@ export default function Blueprint() {
           <span className="rounded-full border px-2.5 py-0.5 text-xs">
             Your diagram: never leaves this device
           </span>
-          <span className="text-xs text-muted-foreground" aria-live="polite">
+          <span
+            className={cn(
+              'rounded-full border px-2.5 py-0.5 text-xs font-medium',
+              diagramBytes === 0
+                ? 'border-success/40 bg-success/10 text-success'
+                : 'border-border bg-muted text-muted-foreground',
+            )}
+            aria-live="polite"
+          >
             {diagramBytes === 0
               ? 'Diagram bytes sent: 0'
               : `Canvas bytes sent (approved): ${formatBytes(diagramBytes)}`}
@@ -803,8 +812,7 @@ export default function Blueprint() {
             <a
               href={ctx ? href('/connections', { id: ctx.cartridge.id }) : '/connections'}
               onClick={linkHandler('/connections', ctx ? { id: ctx.cartridge.id } : undefined)}
-              className="rounded-full border px-2.5 py-0.5 text-xs font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              style={{ borderColor: COLOURS.amber, color: COLOURS.amber }}
+              className="rounded-full border border-warning/50 bg-warning/10 px-2.5 py-0.5 text-xs font-medium text-warning outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
               title="The connection test has not passed on this device with these rules, so the canvas only advises. Open the connection test."
             >
               Advisory mode

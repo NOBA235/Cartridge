@@ -7,6 +7,7 @@ export type Purpose =
   | 'tutor'
   | 'connection-tests'
   | 'questions'
+  | 'library-publish'
   | 'signal-checks'
   | 'developer'
   | 'unexpected';
@@ -17,6 +18,7 @@ export const PURPOSE_LABEL: Record<Purpose, string> = {
   tutor: 'Exam Day tutor (public rules, practice questions)',
   'connection-tests': 'Writing connection tests (public rules)',
   questions: 'Questions you approved sending',
+  'library-publish': 'Publishing public cartridges (Firestore)',
   'signal-checks': 'Signal checks (no content)',
   developer: 'Developer page tests',
   unexpected: 'Unexpected: a device call reported the cloud',
@@ -38,6 +40,8 @@ function purposeOf(e: EgressEntry): Purpose | undefined {
       return 'connection-tests';
     case 'ANSWER':
       return 'questions';
+    case 'PUBLISH_PUBLIC_CARTRIDGE':
+      return 'library-publish';
     default:
       return 'developer';
   }

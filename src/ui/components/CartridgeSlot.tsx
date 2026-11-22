@@ -92,7 +92,7 @@ export function CartridgeSlot() {
   return (
     <div className="flex items-center gap-2">
       <div
-        className="relative h-11 w-64 overflow-hidden rounded-lg border bg-black/30 p-1 shadow-inner max-sm:w-48"
+        className="relative h-11 w-64 overflow-hidden rounded-lg border bg-muted/70 p-1 shadow-inner max-sm:w-48"
         aria-label="Cartridge slot"
         role="group"
       >

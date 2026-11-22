@@ -8,6 +8,47 @@ import { Button } from '@/ui/primitives/button';
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
+function ScoreRing({
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  label: string;
+  value: number | null;
+  sub: string;
+  tone: 'ok' | 'bad' | 'neutral';
+}) {
+  const r = 22;
+  const circ = 2 * Math.PI * r;
+  const frac = value === null ? 0 : Math.max(0, Math.min(1, value));
+  const stroke =
+    tone === 'ok' ? 'stroke-success' : tone === 'bad' ? 'stroke-destructive' : 'stroke-primary';
+  return (
+    <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
+      <svg aria-hidden="true" viewBox="0 0 56 56" className="size-12 shrink-0 -rotate-90">
+        <circle cx="28" cy="28" r={r} fill="none" strokeWidth="5" className="stroke-border" />
+        <circle
+          cx="28"
+          cy="28"
+          r={r}
+          fill="none"
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={circ * (1 - frac)}
+          className={stroke}
+        />
+      </svg>
+      <div className="min-w-0">
+        <p className="text-base font-semibold tabular-nums">{value === null ? '—' : pct(value)}</p>
+        <p className="text-xs font-medium">{label}</p>
+        <p className="truncate text-[11px] text-muted-foreground">{sub}</p>
+      </div>
+    </div>
+  );
+}
+
 function Row({
   label,
   value,
@@ -113,6 +154,39 @@ export function ExamReportCard({
         <ReadyBadge report={report} />
       </header>
       <MeasuredOn report={report} />
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <ScoreRing
+          label="Held-out pass rate"
+          value={report.heldOutPassRate}
+          sub={c ? `${c.heldOut.passed} of ${c.heldOut.total} unseen` : 'Unseen questions'}
+          tone={report.heldOutPassRate >= 0.75 ? 'ok' : 'neutral'}
+        />
+        <ScoreRing
+          label="Critical rules"
+          value={crit && crit.total === 0 ? null : report.criticalPassRate}
+          sub={`Bar: ≥ ${pct(t?.criticalPassRate ?? 0.9)}`}
+          tone={
+            crit && crit.total === 0
+              ? 'neutral'
+              : report.criticalPassRate >= (t?.criticalPassRate ?? 0.9)
+                ? 'ok'
+                : 'bad'
+          }
+        />
+        <ScoreRing
+          label="Out-of-scope “none”"
+          value={out && out.total === 0 ? null : report.outOfScopeRate}
+          sub={`Bar: ≥ ${pct(t?.outOfScopeRate ?? 0.8)}`}
+          tone={
+            out && out.total === 0
+              ? 'neutral'
+              : report.outOfScopeRate >= (t?.outOfScopeRate ?? 0.8)
+                ? 'ok'
+                : 'bad'
+          }
+        />
+      </div>
 
       <dl>
         <Row

@@ -13,6 +13,7 @@
  */
 import { CloudError, type CloudJson } from '@/ai/cloud';
 import type { EdgeDeviceModel } from '@/ai/deviceModel';
+import { runtimeConfig } from '@/ai/remoteConfig';
 import type { AskContext } from '@/cartridge/ask';
 import { NONE, type Cartridge } from '@/cartridge/types';
 import { config } from '@/config';
@@ -337,7 +338,9 @@ export async function runBench(
         r.verdict.rule?.id !== r.expectedRuleId,
     )
     .map((r) => r.id);
-  const t = config.edgeBench;
+  const rc = runtimeConfig.values();
+  const minCriticalRecall = rc.edgeMinCriticalRecall;
+  const minOverallAccuracy = rc.edgeMinOverallAccuracy;
   const report: EdgeBenchReport = {
     measuredOn: model.kind === 'firebase' ? 'device' : 'mock',
     criticalRecall: summary.criticalRecall,
@@ -345,11 +348,10 @@ export async function runBench(
     missedViolations: missed,
     ranAt: (options.now ?? (() => new Date()))().toISOString(),
     passed:
-      summary.criticalRecall >= t.minCriticalRecall &&
-      summary.overallAccuracy >= t.minOverallAccuracy,
+      summary.criticalRecall >= minCriticalRecall && summary.overallAccuracy >= minOverallAccuracy,
     runs: summaries,
     lowestRun: worst,
-    thresholds: { criticalRecall: t.minCriticalRecall, overallAccuracy: t.minOverallAccuracy },
+    thresholds: { criticalRecall: minCriticalRecall, overallAccuracy: minOverallAccuracy },
     wrongRule,
     ...(latencies.length > 0 ? { medianLatencyMs: median(latencies) } : {}),
   };

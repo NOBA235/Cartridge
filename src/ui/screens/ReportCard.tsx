@@ -3,7 +3,8 @@
  * quotes are still found in the rulebook, and the receipt of what ran here
  * and what left this device.
  */
-import { useId, useMemo, useSyncExternalStore } from 'react';
+import { useId, useMemo, useState, useSyncExternalStore } from 'react';
+import { runtimeConfig, type ConfigSource } from '@/ai/remoteConfig';
 import { canvasMode } from '@/canvas/bench';
 import type { LoadedCartridge } from '@/cartridge/askSession';
 import { verifyQuote } from '@/cartridge/verifyQuote';
@@ -155,6 +156,66 @@ function Receipt() {
   );
 }
 
+const SOURCE_LABEL: Record<ConfigSource, string> = {
+  remote: 'Firebase Remote Config (live)',
+  cached: 'Firebase Remote Config (cached)',
+  defaults: 'Local defaults',
+};
+
+function RemoteConfigCard() {
+  const rc = useSyncExternalStore(runtimeConfig.subscribe, runtimeConfig.get);
+  const [busy, setBusy] = useState(false);
+  const v = rc.values;
+
+  const refresh = async () => {
+    setBusy(true);
+    try {
+      await runtimeConfig.refresh();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section aria-labelledby="rc-title" className="flex flex-col gap-3 rounded-xl border p-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 id="rc-title" className="text-lg font-semibold">
+            Hybrid configuration
+          </h2>
+          <span className="rounded-full border bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+            {SOURCE_LABEL[rc.source]}
+            {rc.overrideCount > 0 &&
+              ` · ${rc.overrideCount} override${rc.overrideCount === 1 ? '' : 's'}`}
+          </span>
+        </div>
+        <Button size="sm" variant="outline" disabled={busy} onClick={() => void refresh()}>
+          {busy ? 'Checking…' : 'Refresh Remote Config'}
+        </Button>
+      </div>
+      <dl className="grid gap-2 text-xs sm:grid-cols-2">
+        <div className="rounded-lg border bg-muted/30 p-3">
+          <dt className="text-muted-foreground">Cloud models (Firebase AI Logic)</dt>
+          <dd className="mt-1 font-mono text-foreground">
+            Compile: {v.cloudModels.COMPILE} · Ask: {v.cloudModels.ANSWER}
+          </dd>
+        </div>
+        <div className="rounded-lg border bg-muted/30 p-3">
+          <dt className="text-muted-foreground">Tunable gates</dt>
+          <dd className="mt-1 text-foreground">
+            Ask min score {v.askMinScore} · Exam critical ≥{' '}
+            {Math.round(v.examReadyCriticalPassRate * 100)}%{' · '}Blueprint recall ≥{' '}
+            {Math.round(v.edgeMinCriticalRecall * 100)}%
+          </dd>
+        </div>
+      </dl>
+      {rc.error && (
+        <p className="text-xs text-muted-foreground">Using local defaults ({rc.error}).</p>
+      )}
+    </section>
+  );
+}
+
 function ReportFor({ loaded }: { loaded: LoadedCartridge }) {
   const c = loaded.cartridge;
   return (
@@ -204,6 +265,7 @@ function ReportFor({ loaded }: { loaded: LoadedCartridge }) {
         </a>
       </section>
       <Receipt />
+      <RemoteConfigCard />
     </div>
   );
 }
@@ -256,6 +318,7 @@ export function ReportCard() {
           </a>
         </div>
         <Receipt />
+        <RemoteConfigCard />
       </section>
     );
   }

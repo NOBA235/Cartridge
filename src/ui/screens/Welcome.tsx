@@ -109,6 +109,39 @@ export function Welcome() {
         </p>
       </div>
 
+      <div className="grid gap-3 sm:grid-cols-3" aria-label="Hybrid architecture">
+        <div className="flex flex-col gap-1 rounded-xl border bg-card p-4">
+          <p className="text-xs font-semibold tracking-wide text-primary uppercase">
+            1. Cloud, once
+          </p>
+          <p className="text-sm font-medium">Compile public standards</p>
+          <p className="text-xs text-muted-foreground">
+            Firebase AI Logic distils an openly licensed standard into numbered rules with verbatim
+            quotes verified locally.
+          </p>
+        </div>
+        <div className="flex flex-col gap-1 rounded-xl border bg-card p-4">
+          <p className="text-xs font-semibold tracking-wide text-primary uppercase">
+            2. Tested on-device
+          </p>
+          <p className="text-sm font-medium">Exam Day &amp; Connection Test</p>
+          <p className="text-xs text-muted-foreground">
+            Gemini Nano takes a held-out exam and 3x connection benchmark on this device before
+            verdict mode unlocks.
+          </p>
+        </div>
+        <div className="flex flex-col gap-1 rounded-xl border bg-card p-4">
+          <p className="text-xs font-semibold tracking-wide text-success uppercase">
+            3. Zero-egress offline
+          </p>
+          <p className="text-sm font-medium">Your diagram stays local</p>
+          <p className="text-xs text-muted-foreground">
+            Audit architecture diagrams and engineering questions offline on Gemini Nano — 0 bytes
+            leave this device.
+          </p>
+        </div>
+      </div>
+
       {!loading && records.length === 0 && (
         <section
           aria-labelledby="starter-title"
@@ -250,6 +283,11 @@ export function Welcome() {
             Questions typed in the Ask screen go to the cloud only when the cartridge cannot answer
             and the user has left &apos;Ask the cloud when needed&apos; switched on. Every such call
             shows in the &apos;What left this device&apos; panel.
+          </li>
+          <li>
+            The optional Public Cartridge Library syncs only confirmed public standards and compiled
+            cartridges via Firebase Firestore. Private questions, diagrams and notes never leave
+            this device.
           </li>
         </ul>
       </section>
