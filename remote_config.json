@@ -1,0 +1,89 @@
+{
+  "conditions": [],
+  "parameters": {
+    "cloud_model_dev_ping": {
+      "defaultValue": {
+        "value": "gemini-3.5-flash-lite"
+      },
+      "description": "Cloud model ID used by /dev ping check via Firebase AI Logic.",
+      "valueType": "STRING"
+    },
+    "cloud_model_compile": {
+      "defaultValue": {
+        "value": "gemini-3.5-flash-lite"
+      },
+      "description": "Cloud model ID used to compile public standards into numbered rules.",
+      "valueType": "STRING"
+    },
+    "cloud_model_repair_quote": {
+      "defaultValue": {
+        "value": "gemini-3.5-flash-lite"
+      },
+      "description": "Cloud model ID used to repair non-matching rule quotes during compilation.",
+      "valueType": "STRING"
+    },
+    "cloud_model_exam": {
+      "defaultValue": {
+        "value": "gemini-3.5-flash-lite"
+      },
+      "description": "Cloud model ID used to generate Exam Day questions from public rules.",
+      "valueType": "STRING"
+    },
+    "cloud_model_tutor": {
+      "defaultValue": {
+        "value": "gemini-3.5-flash-lite"
+      },
+      "description": "Cloud model ID used by the Exam Day tutor to refine practice-failing rules.",
+      "valueType": "STRING"
+    },
+    "cloud_model_answer": {
+      "defaultValue": {
+        "value": "gemini-3.5-flash-lite"
+      },
+      "description": "Cloud model ID used for consent-gated cloud answers in Ask and Blueprint.",
+      "valueType": "STRING"
+    },
+    "cloud_model_edge_bench": {
+      "defaultValue": {
+        "value": "gemini-3.5-flash-lite"
+      },
+      "description": "Cloud model ID used to draft Connection Test edges from public rules.",
+      "valueType": "STRING"
+    },
+    "ask_min_score": {
+      "defaultValue": {
+        "value": "2"
+      },
+      "description": "Minimum MiniSearch score below which Ask treats a question as LOW_RETRIEVAL.",
+      "valueType": "NUMBER"
+    },
+    "exam_ready_critical_pass_rate": {
+      "defaultValue": {
+        "value": "0.9"
+      },
+      "description": "Minimum held-out critical rule pass rate required for Exam Day Ready status (0..1).",
+      "valueType": "NUMBER"
+    },
+    "exam_ready_out_of_scope_rate": {
+      "defaultValue": {
+        "value": "0.8"
+      },
+      "description": "Minimum held-out out-of-scope NONE rate required for Exam Day Ready status (0..1).",
+      "valueType": "NUMBER"
+    },
+    "edge_min_critical_recall": {
+      "defaultValue": {
+        "value": "0.9"
+      },
+      "description": "Minimum critical violation recall required to unlock Blueprint verdict mode (0..1).",
+      "valueType": "NUMBER"
+    },
+    "edge_min_overall_accuracy": {
+      "defaultValue": {
+        "value": "0.75"
+      },
+      "description": "Minimum overall Connection Test accuracy required to unlock Blueprint verdict mode (0..1).",
+      "valueType": "NUMBER"
+    }
+  }
+}

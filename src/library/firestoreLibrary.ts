@@ -82,9 +82,10 @@ let authListenerStarted = false;
 
 function toUserSummary(u: User | null): AuthSnapshot['user'] {
   if (!u) return null;
+  // Never publish raw email addresses into the public Firestore library.
   return {
     uid: u.uid,
-    label: u.displayName || u.email || (u.isAnonymous ? 'Guest publisher' : 'Signed-in user'),
+    label: u.displayName?.trim() || (u.isAnonymous ? 'Guest publisher' : 'Signed-in publisher'),
     isAnonymous: u.isAnonymous,
   };
 }

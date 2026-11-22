@@ -1,32 +1,378 @@
 rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// This security rules file assumes the following data structure:
+//
+// Collection: public_cartridges
+// Document ID: {docId} (string, 1..120 chars; client format: "${sourceHash[0..15]}-v${version}")
+// Privacy boundary:
+//   - Stores ONLY openly licensed, user-confirmed public standards and their
+//     compiled rule cartridges.
+//   - Private user questions, architecture diagrams, notes, egress logs, and
+//     PII (such as email addresses) are never written to Firestore.
+// Access patterns:
+//   - Public unauthenticated read (`get` and `list`, including
+//     `orderBy('publishedAt', 'desc'), limit(maxItems)` queries).
+//   - Authenticated (Google or Anonymous Auth) owner-only create, update
+//     (republish), and delete.
+// Fields (exact 11 required keys; no extraneous fields allowed):
+//   - id: string (required, immutable, 1..120 chars, must equal docId)
+//   - name: string (required, 1..200 chars, non-blank)
+//   - licence: string (required, 1..200 chars, non-blank)
+//   - sourceHash: string (required, immutable, 8..128 chars, non-blank)
+//   - sourceText: string (required, 1..400000 chars)
+//   - cartridge: map (required; validated against CartridgeSchema)
+//       - id: string (required, 1..128 chars)
+//       - name: string (required, 1..200 chars, non-blank)
+//       - version: int (required, 1..1000000)
+//       - parentVersion: int (optional, 1..1000000)
+//       - createdAt: string (required, 0..64 chars)
+//       - sourceHash: string (required, must equal top-level sourceHash)
+//       - sourceName: string (optional, 0..300 chars)
+//       - sourceLicence: string (optional, 0..200 chars)
+//       - rules: list (required, size == ruleCount; rules[0] shape-validated)
+//       - changelog: list (required, max 200 items)
+//       - report: map (optional; validated against ExamReportSchema)
+//       - edgeBench: map (optional; validated against EdgeBenchReportSchema)
+//   - ruleCount: int (required, 1..120, must equal cartridge.rules.size())
+//   - criticalCount: int (required, 0..ruleCount)
+//   - publishedByUid: string (required, immutable, 1..128 chars, must equal request.auth.uid)
+//   - publishedByName: string (required, 1..120 chars, non-blank)
+//   - publishedAt: string (required, 1..64 chars, ISO-8601 date-time string)
+//
+// All other collections and subcollections are denied by default.
+//
+// ===============================================================
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Public Cartridge Library: openly licensed public standards and compiled
-    // cartridges only. Private user questions, diagrams and notes are never
-    // written to Firestore.
-    match /public_cartridges/{docId} {
-      allow read: if true;
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
 
-      allow create, update: if request.auth != null
-        && request.resource.data.id == docId
-        && request.resource.data.publishedByUid == request.auth.uid
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0
-        && request.resource.data.name.size() <= 200
-        && request.resource.data.licence is string
-        && request.resource.data.licence.size() > 0
-        && request.resource.data.licence.size() <= 200
-        && request.resource.data.sourceHash is string
-        && request.resource.data.sourceText is string
-        && request.resource.data.sourceText.size() <= 400000
-        && request.resource.data.ruleCount is int
-        && request.resource.data.ruleCount >= 1
-        && request.resource.data.ruleCount <= 120;
-
-      allow delete: if request.auth != null
-        && resource.data.publishedByUid == request.auth.uid;
+    // Check if the caller is authenticated (Google or Anonymous Auth).
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
+    // Check if the authenticated caller matches a specific user ID.
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Check if the authenticated caller owns the existing document.
+    function isDocOwner() {
+      return isAuthenticated() &&
+        'publishedByUid' in resource.data &&
+        resource.data.publishedByUid is string &&
+        resource.data.publishedByUid == request.auth.uid;
+    }
+
+    // Verify publishedByUid matches the authenticated caller on create.
+    function uidUnchanged() {
+      return 'publishedByUid' in request.resource.data &&
+        request.resource.data.publishedByUid is string &&
+        request.resource.data.publishedByUid == request.auth.uid;
+    }
+
+    // Verify publishedByUid is not modified on update.
+    function uidNotModified() {
+      return 'publishedByUid' in request.resource.data &&
+        'publishedByUid' in resource.data &&
+        request.resource.data.publishedByUid == resource.data.publishedByUid;
+    }
+
+    // Validate all required top-level fields exist.
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // Validate only whitelisted top-level fields are present.
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // Verify immutable fields are untouched on update.
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // Validate string type and length bounds.
+    function isValidString(value, minLen, maxLen) {
+      return value is string &&
+        value.size() >= minLen &&
+        value.size() <= maxLen;
+    }
+
+    // Validate non-blank string type and length bounds.
+    function isValidTrimmedString(value, minLen, maxLen) {
+      return isValidString(value, minLen, maxLen) &&
+        value.trim().size() >= 1;
+    }
+
+    // Validate ISO-8601 date-time string format (e.g., Date.prototype.toISOString()).
+    // Note: regex validates format only, not calendar validity (e.g., Feb 31).
+    function isValidDateString(dateStr) {
+      return isValidString(dateStr, 1, 64) &&
+        dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?(Z|[+-]\\d{2}:\\d{2})$");
+    }
+
+    // Validate list type and maximum size bound.
+    function isValidList(listValue, maxSize) {
+      return listValue is list && listValue.size() <= maxSize;
+    }
+
+    // Validate numeric proportion in [0, 1].
+    function isUnitInterval(value) {
+      return value is number && value >= 0 && value <= 1;
+    }
+
+    // Validate nested map type, required keys, and allowed key whitelist.
+    function hasMapKeys(mapData, requiredKeys, allowedKeys) {
+      return mapData is map &&
+        mapData.keys().hasAll(requiredKeys) &&
+        mapData.keys().hasOnly(allowedKeys);
+    }
+
+    // ===============================================================
+    // Domain Validators (Used on BOTH create and update)
+    // ===============================================================
+
+    function isValidCalc(calc) {
+      let keys = ['op', 'factor', 'inputLabel', 'inputUnit', 'outputLabel', 'outputUnit', 'rounding'];
+      return hasMapKeys(calc, keys, keys) &&
+        calc.op in ['divide', 'multiply'] &&
+        calc.factor is number && calc.factor > 0 &&
+        isValidString(calc.inputLabel, 1, 200) &&
+        isValidString(calc.inputUnit, 0, 100) &&
+        isValidString(calc.outputLabel, 1, 200) &&
+        isValidString(calc.outputUnit, 0, 100) &&
+        calc.rounding in ['ceil', 'floor', 'round'];
+    }
+
+    function isValidRuleSource(src) {
+      return hasMapKeys(src, ['section', 'quote'], ['section', 'page', 'quote']) &&
+        isValidString(src.section, 0, 500) &&
+        isValidString(src.quote, 1, 8000) &&
+        (!('page' in src) || (src.page is int && src.page >= 1 && src.page <= 100000));
+    }
+
+    function isValidRule(rule) {
+      let required = ['id', 'title', 'when', 'then', 'exceptions', 'severity', 'keywords', 'source'];
+      let allowed = [
+        'id', 'title', 'when', 'notWhen', 'then',
+        'exceptions', 'severity', 'keywords', 'source', 'calc'
+      ];
+      return hasMapKeys(rule, required, allowed) &&
+        isValidString(rule.id, 4, 16) &&
+        rule.id.matches("^R\\d{3,}$") &&
+        isValidString(rule.title, 1, 500) &&
+        isValidString(rule.when, 1, 2000) &&
+        (!('notWhen' in rule) || isValidString(rule.notWhen, 0, 2000)) &&
+        isValidString(rule.then, 1, 8000) &&
+        isValidList(rule.exceptions, 50) &&
+        rule.severity in ['critical', 'major', 'minor'] &&
+        isValidList(rule.keywords, 50) &&
+        isValidRuleSource(rule.source) &&
+        (!('calc' in rule) || isValidCalc(rule.calc));
+    }
+
+    function isValidTally(tally) {
+      let keys = ['passed', 'total'];
+      return hasMapKeys(tally, keys, keys) &&
+        tally.passed is int && tally.passed >= 0 && tally.passed <= 100000 &&
+        tally.total is int && tally.total >= 0 && tally.total <= 100000 &&
+        tally.passed <= tally.total;
+    }
+
+    function isValidExamCounts(counts) {
+      let keys = ['practiceStart', 'practice', 'heldOut', 'heldOutCritical', 'heldOutOutOfScope'];
+      return hasMapKeys(counts, keys, keys) &&
+        isValidTally(counts.practiceStart) &&
+        isValidTally(counts.practice) &&
+        isValidTally(counts.heldOut) &&
+        isValidTally(counts.heldOutCritical) &&
+        isValidTally(counts.heldOutOutOfScope);
+    }
+
+    function isValidExamReport(report) {
+      let required = [
+        'ranAt', 'measuredOn', 'passRate', 'criticalPassRate',
+        'outOfScopeRate', 'heldOutPassRate', 'failures', 'ready'
+      ];
+      let allowed = [
+        'ranAt', 'measuredOn', 'passRate', 'criticalPassRate',
+        'outOfScopeRate', 'heldOutPassRate', 'failures', 'ready',
+        'counts', 'thresholds', 'tutorRounds', 'medianLatencyMs',
+        'notes', 'overridden'
+      ];
+      return hasMapKeys(report, required, allowed) &&
+        isValidString(report.ranAt, 0, 64) &&
+        report.measuredOn in ['device', 'mock'] &&
+        isUnitInterval(report.passRate) &&
+        isUnitInterval(report.criticalPassRate) &&
+        isUnitInterval(report.outOfScopeRate) &&
+        isUnitInterval(report.heldOutPassRate) &&
+        isValidList(report.failures, 200) &&
+        report.ready is bool &&
+        (!('counts' in report) || isValidExamCounts(report.counts)) &&
+        (!('thresholds' in report) || (
+          hasMapKeys(
+            report.thresholds,
+            ['criticalPassRate', 'outOfScopeRate'],
+            ['criticalPassRate', 'outOfScopeRate']
+          ) &&
+          isUnitInterval(report.thresholds.criticalPassRate) &&
+          isUnitInterval(report.thresholds.outOfScopeRate)
+        )) &&
+        (!('tutorRounds' in report) || (
+          report.tutorRounds is int &&
+          report.tutorRounds >= 0 &&
+          report.tutorRounds <= 1000
+        )) &&
+        (!('medianLatencyMs' in report) || (
+          report.medianLatencyMs is number &&
+          report.medianLatencyMs >= 0
+        )) &&
+        (!('notes' in report) || isValidList(report.notes, 50)) &&
+        (!('overridden' in report) || (
+          hasMapKeys(report.overridden, ['at'], ['at']) &&
+          isValidString(report.overridden.at, 0, 64)
+        ));
+    }
+
+    function isValidEdgeBenchReport(bench) {
+      let required = [
+        'measuredOn', 'criticalRecall', 'overallAccuracy', 'missedViolations',
+        'ranAt', 'passed', 'runs', 'lowestRun', 'thresholds'
+      ];
+      let allowed = [
+        'measuredOn', 'criticalRecall', 'overallAccuracy', 'missedViolations',
+        'ranAt', 'passed', 'runs', 'lowestRun', 'thresholds',
+        'wrongRule', 'medianLatencyMs'
+      ];
+      return hasMapKeys(bench, required, allowed) &&
+        bench.measuredOn in ['device', 'mock'] &&
+        isUnitInterval(bench.criticalRecall) &&
+        isUnitInterval(bench.overallAccuracy) &&
+        isValidList(bench.missedViolations, 100) &&
+        isValidString(bench.ranAt, 0, 64) &&
+        bench.passed is bool &&
+        isValidList(bench.runs, 20) &&
+        bench.lowestRun is int && bench.lowestRun >= 0 && bench.lowestRun <= 100 &&
+        hasMapKeys(
+          bench.thresholds,
+          ['criticalRecall', 'overallAccuracy'],
+          ['criticalRecall', 'overallAccuracy']
+        ) &&
+        isUnitInterval(bench.thresholds.criticalRecall) &&
+        isUnitInterval(bench.thresholds.overallAccuracy) &&
+        (!('wrongRule' in bench) || isValidList(bench.wrongRule, 100)) &&
+        (!('medianLatencyMs' in bench) || (
+          bench.medianLatencyMs is number &&
+          bench.medianLatencyMs >= 0
+        ));
+    }
+
+    function isValidCartridge(cartridge, data) {
+      let required = ['id', 'name', 'version', 'createdAt', 'sourceHash', 'rules', 'changelog'];
+      let allowed = [
+        'id', 'name', 'version', 'parentVersion', 'createdAt', 'sourceHash',
+        'sourceName', 'sourceLicence', 'rules', 'changelog', 'report', 'edgeBench'
+      ];
+      return hasMapKeys(cartridge, required, allowed) &&
+        isValidString(cartridge.id, 1, 128) &&
+        isValidTrimmedString(cartridge.name, 1, 200) &&
+        cartridge.version is int && cartridge.version >= 1 && cartridge.version <= 1000000 &&
+        (!('parentVersion' in cartridge) || (
+          cartridge.parentVersion is int &&
+          cartridge.parentVersion >= 1 &&
+          cartridge.parentVersion <= 1000000
+        )) &&
+        isValidString(cartridge.createdAt, 0, 64) &&
+        cartridge.sourceHash is string &&
+        cartridge.sourceHash == data.sourceHash &&
+        (!('sourceName' in cartridge) || isValidString(cartridge.sourceName, 0, 300)) &&
+        (!('sourceLicence' in cartridge) || isValidString(cartridge.sourceLicence, 0, 200)) &&
+        cartridge.rules is list &&
+        cartridge.rules.size() == data.ruleCount &&
+        isValidRule(cartridge.rules[0]) &&
+        isValidList(cartridge.changelog, 200) &&
+        (!('report' in cartridge) || isValidExamReport(cartridge.report)) &&
+        (!('edgeBench' in cartridge) || isValidEdgeBenchReport(cartridge.edgeBench));
+    }
+
+    function isValidPublicCartridge(data, docId) {
+      let allowedFields = [
+        'id',
+        'name',
+        'licence',
+        'sourceHash',
+        'sourceText',
+        'cartridge',
+        'ruleCount',
+        'criticalCount',
+        'publishedByUid',
+        'publishedByName',
+        'publishedAt'
+      ];
+      return isValidString(docId, 1, 120) &&
+        hasOnlyAllowedFields(allowedFields) &&
+        hasRequiredFields(allowedFields) &&
+        isValidString(data.id, 1, 120) &&
+        data.id == docId &&
+        isValidTrimmedString(data.name, 1, 200) &&
+        isValidTrimmedString(data.licence, 1, 200) &&
+        isValidString(data.sourceHash, 8, 128) &&
+        data.sourceHash.trim().size() >= 8 &&
+        isValidString(data.sourceText, 1, 400000) &&
+        data.ruleCount is int &&
+        data.ruleCount >= 1 &&
+        data.ruleCount <= 120 &&
+        data.criticalCount is int &&
+        data.criticalCount >= 0 &&
+        data.criticalCount <= data.ruleCount &&
+        isValidString(data.publishedByUid, 1, 128) &&
+        isOwner(data.publishedByUid) &&
+        isValidTrimmedString(data.publishedByName, 1, 120) &&
+        isValidDateString(data.publishedAt) &&
+        isValidCartridge(data.cartridge, data);
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    // Public Cartridge Library: openly licensed public standards and compiled
+    // cartridges only. Private user questions, diagrams, notes, and PII never
+    // touch Firestore.
+    match /public_cartridges/{docId} {
+      // Public browsing and installation (accommodates unauthenticated
+      // orderBy('publishedAt', 'desc') + limit(maxItems) queries).
+      allow read: if true;
+
+      // Authenticated publishers (Google or Anonymous Auth) may create a new
+      // cartridge document bound to their own UID with full schema validation.
+      allow create: if isAuthenticated() &&
+        uidUnchanged() &&
+        isValidPublicCartridge(request.resource.data, docId);
+
+      // Only the original publisher may republish/update an existing document.
+      // Identity and source-binding fields remain immutable, and the full
+      // domain validator runs on every update to prevent update bypasses.
+      allow update: if isDocOwner() &&
+        uidNotModified() &&
+        areImmutableFieldsUnchanged(['id', 'publishedByUid', 'sourceHash']) &&
+        isValidPublicCartridge(request.resource.data, docId);
+
+      // Only the original publisher may delete their published cartridge.
+      allow delete: if isDocOwner();
+    }
+
+    // Default deny-all fallback for all other collections and subcollections.
     match /{document=**} {
       allow read, write: if false;
     }
