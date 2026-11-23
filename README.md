@@ -5,19 +5,38 @@ numbered rules — answered and audited live by Gemini Nano on your own device.
 
 **Public standards go to the cloud once. Your diagram never does.**
 
+- **Live Web App:** https://my-firebase-project-444fb.web.app
+- **Source Code:** https://github.com/NOBA235/Cartridge ([Apache-2.0](LICENSE))
+
 <!-- Demo GIF: docs/demo.gif -->
 
-Built for the #BuildHybridAI 2026 hackathon with **Firebase AI Logic** (cloud Gemini plus Gemini Nano in Chrome), **App Check**, **Remote Config**, **Firestore**, **Authentication**, and **Firebase Hosting**.
+Built for the **#BuildHybridAI 2026** hackathon with **Firebase AI Logic** (cloud Gemini plus Gemini Nano in Chrome), **App Check** (reCAPTCHA Enterprise), **Remote Config**, **Firestore**, **Authentication**, and **Firebase Hosting**.
 
-- **Try it in 1 click:** ships with a real, pre-compiled 74-rule **OWASP ASVS 5.0** starter cartridge (`CC BY-SA 4.0`) whose quotes verify live on your device.
+- **Try it in 1 click:** ships with a real, pre-compiled 74-rule **OWASP ASVS 5.0** starter cartridge (`CC BY-SA 4.0`) whose quotes verify live on your device — no setup required.
 - **Adaptive Light & Dark mode:** follows your OS preference automatically (`color-scheme: light dark` + `light-dark()`) with a header theme toggle and adaptive Blueprint canvas.
 - **Offline typography:** bundles `@fontsource-variable/inter` locally so UI typography renders cleanly without network access.
 
 > Reference tool, not an official authority.
 
+## Real Measured Compilation (OWASP ASVS 5.0)
+
+Compiled through live Firebase AI Logic (`gemini-3.5-flash-lite`) from official OWASP ASVS 5.0 Chapters V7, V8, V12, V14, and V16 (`CC BY-SA 4.0`, 35,883 characters; bundled in [public/starter/](public/starter/)):
+
+| Metric                                      | Measured Result                                                       |
+| :------------------------------------------ | :-------------------------------------------------------------------- |
+| Cloud calls (`COMPILE` + `REPAIR_QUOTE`)    | 5 calls (56,591 bytes sent)                                           |
+| Total compile time                          | 96 s                                                                  |
+| Verbatim quote verification (local code)    | 82 / 82 verified (100%, 1 repaired)                                   |
+| Unique rules kept after deduplication       | 74 rules (19 `critical`, 55 `major`, 5 with stated exceptions)        |
+| Diagram bytes sent on Blueprint (automatic) | 0 bytes (enforced by `Private<T>` / `Public<T>` types & runtime gate) |
+
+_(Exam Day and 3x Connection Test scores are never pre-fabricated: run them on your own Chrome 139+ Gemini Nano browser via `/exam` and `/connections` to record real `measuredOn: 'device'` reports.)_
+
 ## Quick start
 
-Requirements: Node 20.19+ (tested on Node 24), desktop Chrome 139+ for on-device inference.
+**Try the hosted app immediately:** open https://my-firebase-project-444fb.web.app and click **Load OWASP ASVS 5.0 starter (74 rules)**.
+
+**Run locally:** Requirements: Node 20.19+ (tested on Node 24), desktop Chrome 139+ for on-device inference.
 
 ```sh
 npm install
@@ -233,8 +252,8 @@ Production builds use reCAPTCHA Enterprise for App Check (never the debug provid
 
    ```sh
    npm run build
-   npx firebase-tools login
-   npx firebase-tools deploy --only hosting,firestore:rules --project <project-id>
+   npx -y firebase-tools@latest login
+   npx -y firebase-tools@latest deploy --only hosting,firestore:rules,remoteconfig --project <project-id>
    ```
 
 4. Once App Check metrics show your app's requests as verified, enforce App Check for Firebase AI
