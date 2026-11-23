@@ -8,7 +8,7 @@ numbered rules — answered and audited live by Gemini Nano on your own device.
 - **Live Web App:** https://my-firebase-project-444fb.web.app
 - **Source Code:** https://github.com/NOBA235/Cartridge ([Apache-2.0](LICENSE))
 
-<!-- Demo GIF: docs/demo.gif -->
+![Cartridge walkthrough — 1-click OWASP ASVS 5.0 starter, verified rule quotes, offline Blueprint canvas with 0 diagram bytes sent, Light and Dark mode, and live Firebase Remote Config](docs/demo.gif)
 
 Built for the **#BuildHybridAI 2026** hackathon with **Firebase AI Logic** (cloud Gemini plus Gemini Nano in Chrome), **App Check** (reCAPTCHA Enterprise), **Remote Config**, **Firestore**, **Authentication**, and **Firebase Hosting**.
 
@@ -17,6 +17,24 @@ Built for the **#BuildHybridAI 2026** hackathon with **Firebase AI Logic** (clou
 - **Offline typography:** bundles `@fontsource-variable/inter` locally so UI typography renders cleanly without network access.
 
 > Reference tool, not an official authority.
+
+## Screenshots
+
+|              Welcome — Dark Mode & Hybrid Architecture               |                        One-Click OWASP ASVS 5.0 Starter — Light Mode                         |
+| :------------------------------------------------------------------: | :------------------------------------------------------------------------------------------: |
+| ![Welcome screen in Dark mode](docs/screenshots/01-welcome-dark.png) | ![Loaded OWASP ASVS 5.0 starter in Light mode](docs/screenshots/03-starter-loaded-light.png) |
+
+|                      Offline Blueprint Canvas — Dark (`Diagram bytes sent: 0`)                      |                               Offline Blueprint Canvas — Light Mode                               |
+| :-------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------: |
+| ![Blueprint canvas in Dark mode with Diagram bytes sent: 0](docs/screenshots/06-blueprint-dark.png) | ![Blueprint canvas in Light mode synced with Excalidraw](docs/screenshots/07-blueprint-light.png) |
+
+|                           Verified OWASP ASVS 5.0 Rule Cards (Local Quote Check)                            |                         Offline-First Ask & Consent-Gated Cloud Escalation                          |
+| :---------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------: |
+| ![Expanded critical rule card with highlighted verified quote](docs/screenshots/04-cards-verified-dark.png) | ![Ask screen with sample OWASP ASVS questions and offline switch](docs/screenshots/05-ask-dark.png) |
+
+|                                      Report Card — 74/74 Verified Quotes, Egress Receipt & Live Remote Config                                      |
+| :------------------------------------------------------------------------------------------------------------------------------------------------: |
+| ![Report card showing 74 of 74 verified quotes, 0 bytes egress receipt, and live Firebase Remote Config](docs/screenshots/08-report-card-dark.png) |
 
 ## Real Measured Compilation (OWASP ASVS 5.0)
 
