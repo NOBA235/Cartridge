@@ -36,6 +36,44 @@ Built for the **#BuildHybridAI 2026** hackathon with **Firebase AI Logic** (clou
 | :------------------------------------------------------------------------------------------------------------------------------------------------: |
 | ![Report card showing 74 of 74 verified quotes, 0 bytes egress receipt, and live Firebase Remote Config](docs/screenshots/08-report-card-dark.png) |
 
+## Verified on Real Chrome Gemini Nano
+
+Tested live on the hosted production URL (`https://my-firebase-project-444fb.web.app`) using desktop **Chrome 158** on a 16 GB RAM, 4-vCPU Windows VM (CPU inference, no dedicated GPU) with **Firebase AI Logic**, **reCAPTCHA Enterprise App Check**, and **Firebase Remote Config**:
+
+| Workflow Tested on Real Chrome Gemini Nano                      | Observed Result (Live Production URL)                                                                                                                                                                                                                                                                                                                                                                                                       |
+| :-------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Offline Blueprint Canvas (`/blueprint`, DevTools `Offline`)** | **`Gemini Nano ready`** + **0 cloud requests** + **`Diagram bytes sent: 0`**. Flagged `Customer browser — HTTPS, user password → API gateway` locally as **`Possible violation, review R056`** (OWASP ASVS **`14.3.2`**, `Set sufficient anti-caching HTTP response header fields`, **`Verified against the source`**). Stayed honestly in amber **Advisory mode**.                                                                         |
+| **Exam Day (`/exam`, live practice + Cloud Tutor)**             | Gemini Nano answered practice questions locally on-device (**`20 / 25` = `80%`** shown mid-run across 28 practice questions). Cloud Tutor (`gemini-3.5-flash-lite`) completed Round 1 (`12.8 KB`) and Round 2 (`4.5 KB` — ~65% smaller failure payload after Round 1 patches) and triggered retake rounds on-device. _(Note: on CPU-only inference without a GPU, a full 40-question Exam Day + 2 tutor retake rounds takes ~20+ minutes.)_ |
+| **Connection Test (`/connections`, 30 reviewed connections)**   | Drafted 30 connections via Cloud Gemini, reviewed by hand, and ran on-device through `18 / 30` on Run 1 (leaving Blueprint honestly in **Advisory mode** until a full 3× run completes on GPU/faster hardware).                                                                                                                                                                                                                             |
+| **Consent-Gated Cloud Fallback (`/ask`)**                       | Out-of-scope question (`"what color should be the banner"`) triggered **`Send this to the cloud?`** showing exact **`31 bytes`** and `gemini-3.5-flash-lite` before anything left the device; all outbound calls recorded in **What left this device**.                                                                                                                                                                                     |
+
+|                                        Real Chrome Gemini Nano — Offline Blueprint (`R056` Flagged, `0` Bytes Sent)                                         |                             Real Chrome Gemini Nano — Exam Day Practice (`80%`, `20 / 25`)                              |
+| :---------------------------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------: |
+| ![Real Chrome Gemini Nano offline Blueprint flagging R056 with DevTools Offline and 0 diagram bytes sent](docs/screenshots/real-nano-blueprint-offline.png) | ![Real Chrome Gemini Nano running Exam Day practice locally at 80% (20 of 25)](docs/screenshots/real-nano-exam-day.png) |
+
+|                                Real Chrome Gemini Nano — Explicit Cloud Consent Gate (`31 bytes`)                                |                                             Real Egress Log — Live Cloud Tutor Rounds (`12.8 KB` → `4.5 KB`)                                             |
+| :------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| ![Real Chrome Gemini Nano header with Send this to the cloud 31-byte consent dialog](docs/screenshots/real-nano-ask-consent.png) | ![What left this device drawer showing live gemini-3.5-flash-lite Tutor calls and 74 of 74 verified quotes](docs/screenshots/real-nano-egress-tutor.png) |
+
+## Verified on Real Chrome Gemini Nano
+
+Tested live on the hosted production URL (`https://my-firebase-project-444fb.web.app`) using desktop **Chrome 158** on a 16 GB RAM, 4-vCPU Windows VM (CPU inference, no dedicated GPU) with **Firebase AI Logic**, **reCAPTCHA Enterprise App Check**, and **Firebase Remote Config**:
+
+| Workflow Tested on Real Chrome Gemini Nano | Observed Result (Live Production URL) |
+| :--- | :--- |
+| **Offline Blueprint Canvas (`/blueprint`, DevTools `Offline`)** | **`Gemini Nano ready`** + **0 cloud requests** + **`Diagram bytes sent: 0`**. Flagged `Customer browser — HTTPS, user password → API gateway` locally as **`Possible violation, review R056`** (OWASP ASVS **`14.3.2`**, `Set sufficient anti-caching HTTP response header fields`, **`Verified against the source`**). Stayed honestly in amber **Advisory mode**. |
+| **Exam Day (`/exam`, live practice + Cloud Tutor)** | Gemini Nano answered practice questions locally on-device (**`20 / 25` = `80%`** shown mid-run across 28 practice questions). Cloud Tutor (`gemini-3.5-flash-lite`) completed Round 1 (`12.8 KB`) and Round 2 (`4.5 KB` — ~65% smaller failure payload after Round 1 patches) and triggered retake rounds on-device. *(Note: on CPU-only inference without a GPU, a full 40-question Exam Day + 2 tutor retake rounds takes ~20+ minutes.)* |
+| **Connection Test (`/connections`, 30 reviewed connections)** | Drafted 30 connections via Cloud Gemini, reviewed by hand, and ran on-device through `18 / 30` on Run 1 (leaving Blueprint honestly in **Advisory mode** until a full 3× run completes on GPU/faster hardware). |
+| **Consent-Gated Cloud Fallback (`/ask`)** | Out-of-scope question (`"what color should be the banner"`) triggered **`Send this to the cloud?`** showing exact **`31 bytes`** and `gemini-3.5-flash-lite` before anything left the device; all outbound calls recorded in **What left this device**. |
+
+| Real Chrome Gemini Nano — Offline Blueprint (`R056` Flagged, `0` Bytes Sent) | Real Chrome Gemini Nano — Exam Day Practice (`80%`, `20 / 25`) |
+| :---: | :---: |
+| ![Real Chrome Gemini Nano offline Blueprint flagging R056 with DevTools Offline and 0 diagram bytes sent](docs/screenshots/real-nano-blueprint-offline.png) | ![Real Chrome Gemini Nano running Exam Day practice locally at 80% (20 of 25)](docs/screenshots/real-nano-exam-day.png) |
+
+| Real Chrome Gemini Nano — Explicit Cloud Consent Gate (`31 bytes`) | Real Egress Log — Live Cloud Tutor Rounds (`12.8 KB` → `4.5 KB`) |
+| :---: | :---: |
+| ![Real Chrome Gemini Nano header with Send this to the cloud 31-byte consent dialog](docs/screenshots/real-nano-ask-consent.png) | ![What left this device drawer showing live gemini-3.5-flash-lite Tutor calls and 74 of 74 verified quotes](docs/screenshots/real-nano-egress-tutor.png) |
+
 ## Real Measured Compilation (OWASP ASVS 5.0)
 
 Compiled through live Firebase AI Logic (`gemini-3.5-flash-lite`) from official OWASP ASVS 5.0 Chapters V7, V8, V12, V14, and V16 (`CC BY-SA 4.0`, 35,883 characters; bundled in [public/starter/](public/starter/)):

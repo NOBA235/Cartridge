@@ -117,14 +117,15 @@ export function getFirebase(): FirebaseState {
     // In debug mode the SDK exchanges the debug token and never asks the provider
     // for a token (checked in @firebase/app-check source). Without a site key we
     // pass a provider that refuses, so a missing debug setup fails loudly.
-    const provider = env.VITE_APPCHECK_SITE_KEY
-      ? new ReCaptchaEnterpriseProvider(env.VITE_APPCHECK_SITE_KEY)
-      : new CustomProvider({
-          getToken: () =>
-            Promise.reject(
-              new Error('No App Check site key. Only the debug provider is available.'),
-            ),
-        });
+    const provider =
+      !env.DEV && env.VITE_APPCHECK_SITE_KEY
+        ? new ReCaptchaEnterpriseProvider(env.VITE_APPCHECK_SITE_KEY)
+        : new CustomProvider({
+            getToken: () =>
+              Promise.reject(
+                new Error('No App Check site key. Only the debug provider is available.'),
+              ),
+          });
 
     const appCheck = initializeAppCheck(app, { provider, isTokenAutoRefreshEnabled: true });
     const ai = getAI(app, { backend: new GoogleAIBackend() });
